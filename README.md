@@ -11,9 +11,11 @@ Bir saka kuşuyla tablonun üstünde uçuyorsun, 34 gizli ayrıntıyı arıyorsu
 
 Kurulum gerekmez, tarayıcıda açılır (bilgisayarda en iyisi).
 
-- **Fare / ok tuşları:** uç
-- **H:** Hikâye turu, tabloyu soldan sağa sahne sahne anlatır (← → Boşluk Esc M)
-- **V:** iç görünüm
+- **Fareyi sürükle / A D / oklar:** dön · **W** hızlan · **S** yavaşla
+- **Boşluk** yüksel · **Shift** alçal · **E** atıl · fare tekerleği: yakınlaş
+- **V:** kuş bakışı / tablonun içine dal
+- **H:** Hikâye turu, sahneler soldan sağa sırayla canlanır (← → Boşluk Esc M)
+- **B** defter · **T** tablo haritası · **M** ses
 
 Tablodaki figürlerin bir kısmı gerçek silüetleriyle kesildi ve tablonun üstünde dolaşıyor:
 zürafa, yaban domuzu, ayı, antiloplar, saka kuşu, dev balık, kulaklar, tavşan avcı, patenci.
