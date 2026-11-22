@@ -1,0 +1,1379 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Bahçenin Kuşu</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=Alegreya+Sans:wght@400;500;700&display=swap">
+<style>
+/* Layout: full-screen WebGL diorama of the triptych (painted ground + painted backdrop + standing cut-out figures); HUD = gilded plates at the corners; discovery cards and the album are museum wall labels. Single dark "gallery at night" look. */
+:root{
+  --ink:#120c08;
+  --panel:rgba(22,15,10,.88);
+  --gilt:#c9a24a;
+  --gilt-soft:#e8d29a;
+  --flesh:#f3e6d2;
+  --berry:#d8323a;
+  --eden:#9cc46a;
+  --hell:#ff6a2b;
+  --rare:#8fc1ff;
+  --display:"IM Fell English","Iowan Old Style",Georgia,serif;
+  --caps:"IM Fell English SC","Iowan Old Style",Georgia,serif;
+  --body:"Alegreya Sans","Avenir Next",system-ui,sans-serif;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--ink);color:var(--flesh);font-family:var(--body);overflow:hidden;margin:0;-webkit-user-select:none;user-select:none}
+#gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+.overlay{position:fixed;inset:0;pointer-events:none}
+#flash{background:radial-gradient(ellipse at center,rgba(255,226,150,.0) 30%,rgba(255,214,120,.55) 100%);opacity:0;transition:opacity .5s}
+#hurt{background:radial-gradient(ellipse at center,rgba(120,0,0,0) 40%,rgba(150,10,0,.6) 100%);opacity:0;transition:opacity .4s}
+
+.hud{position:fixed;display:flex;gap:8px;align-items:center;pointer-events:none;z-index:5;flex-wrap:wrap}
+.hud.tl{top:calc(12px + env(safe-area-inset-top,0px));left:max(16px,env(safe-area-inset-left,0px))}
+.hud.tr{top:calc(12px + env(safe-area-inset-top,0px));right:max(16px,env(safe-area-inset-right,0px));justify-content:flex-end}
+.plate{background:var(--panel);border:1px solid var(--gilt);box-shadow:inset 0 0 0 3px rgba(201,162,74,.18);padding:6px 12px;border-radius:2px;display:flex;flex-direction:column;align-items:flex-start;min-width:60px}
+.plate b{font-family:var(--caps);font-weight:400;font-size:11px;letter-spacing:.14em;color:var(--gilt);text-transform:uppercase}
+.plate span{font-family:var(--display);font-size:24px;line-height:1.05;font-variant-numeric:tabular-nums;color:var(--flesh);display:inline-block}
+.plate span.bump{animation:bump .5s cubic-bezier(.3,1.6,.5,1)}
+@keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.45);color:var(--gilt-soft)}100%{transform:scale(1)}}
+.btn{pointer-events:auto;font-family:var(--caps);font-size:15px;letter-spacing:.08em;color:var(--gilt-soft);background:var(--panel);border:1px solid var(--gilt);padding:9px 14px;border-radius:2px;cursor:pointer}
+.btn:hover{background:rgba(60,40,18,.92)}
+.btn:focus-visible,input:focus-visible{outline:2px solid var(--gilt-soft);outline-offset:2px}
+.btn:disabled{opacity:.5;cursor:default}
+
+#heat{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:5;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:4px}
+#heat .bar{width:min(260px,52vw);height:8px;border:1px solid var(--gilt);background:rgba(18,12,8,.7);overflow:hidden;border-radius:1px}
+#heat .fill{height:100%;width:0;background:linear-gradient(90deg,#5d8bb0,#e8d29a,#ffb347,#ff5a2b);transition:width .25s}
+#heat small{font-family:var(--caps);letter-spacing:.16em;font-size:11px;color:var(--gilt-soft);text-shadow:0 0 6px #120c08}
+
+#toast{position:fixed;left:50%;top:32%;transform:translate(-50%,-50%) scale(.8);opacity:0;z-index:7;pointer-events:none;font-family:var(--display);font-style:italic;font-size:clamp(28px,6vw,52px);color:var(--gilt-soft);text-shadow:0 0 10px #120c08,0 0 22px #120c08;transition:opacity .3s,transform .3s;text-align:center;white-space:nowrap}
+#toast.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+#toast.bad{color:#ff8a6a}
+
+#card{position:fixed;left:50%;bottom:calc(52px + env(safe-area-inset-bottom,0px));transform:translate(-50%,40px) scale(.9);opacity:0;z-index:8;pointer-events:none;transition:opacity .35s,transform .45s cubic-bezier(.3,1.5,.5,1);
+  width:min(520px,calc(100vw - 32px));display:grid;grid-template-columns:132px 1fr;gap:14px;align-items:center;background:var(--panel);border:1px solid var(--gilt);box-shadow:inset 0 0 0 5px rgba(201,162,74,.14),0 18px 50px rgba(0,0,0,.7);padding:12px}
+#card.show{opacity:1;transform:translate(-50%,0) scale(1)}
+.crop{width:132px;height:132px;background-repeat:no-repeat;border:1px solid rgba(201,162,74,.6);box-shadow:inset 0 0 18px rgba(0,0,0,.5)}
+#card .txt{min-width:0}
+.rar{font-family:var(--caps);font-size:12px;letter-spacing:.16em;text-transform:uppercase}
+.rar.r0{color:#bfae92}.rar.r1{color:var(--rare)}.rar.r2{color:#ffcf5a;text-shadow:0 0 8px rgba(255,190,60,.6)}
+#card h3{margin:2px 0 4px;font-family:var(--display);font-weight:400;font-size:24px;line-height:1.1;color:var(--flesh);text-wrap:balance}
+#card p{margin:0;font-size:14.5px;line-height:1.4;color:#e4d6bf}
+
+#mini{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:5;border:1px solid var(--gilt);background:var(--ink);box-shadow:0 6px 24px rgba(0,0,0,.6);pointer-events:none}
+#perf{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(2px + env(safe-area-inset-bottom,0px));z-index:5;font:11px/1 var(--body);color:rgba(232,210,154,.55);pointer-events:none;font-variant-numeric:tabular-nums}
+.touchpad{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(96px + env(safe-area-inset-bottom,0px));z-index:6;display:flex;flex-direction:column;gap:10px}
+.touchpad .btn{font-size:16px;padding:14px 16px;min-width:76px}
+#stick{position:fixed;z-index:6;width:110px;height:110px;margin:-55px 0 0 -55px;border-radius:50%;border:1px solid rgba(201,162,74,.6);background:rgba(18,12,8,.25);pointer-events:none}
+#stick i{position:absolute;left:50%;top:50%;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;background:rgba(232,210,154,.55)}
+
+.sheet{position:fixed;inset:0;z-index:10;display:flex;align-items:flex-start;justify-content:center;padding-block:max(24px,env(safe-area-inset-top,0px)) 24px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));background:radial-gradient(ellipse at center,rgba(18,12,8,.55),rgba(18,12,8,.93));overflow:auto}
+.sheet-inner{max-width:640px;width:100%;margin:auto;background:var(--panel);border:1px solid var(--gilt);box-shadow:inset 0 0 0 6px rgba(201,162,74,.12),0 20px 60px rgba(0,0,0,.7);padding:26px 24px 22px;text-align:center}
+.eyebrow{font-family:var(--caps);letter-spacing:.2em;font-size:13px;color:var(--gilt);text-transform:uppercase}
+.sheet h1{font-family:var(--display);font-weight:400;font-size:clamp(34px,7vw,54px);line-height:1;margin:10px 0 6px;color:var(--flesh);text-wrap:balance}
+.sheet h1 i{color:var(--berry)}
+.sheet h2{font-family:var(--display);font-weight:400;font-size:30px;margin:6px 0 8px}
+.sheet p{font-size:16px;line-height:1.5;margin:10px auto;max-width:60ch}
+.rules{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0;text-align:left}
+.rule{border-top:1px solid rgba(201,162,74,.5);padding-top:8px;min-width:0}
+.rule b{display:block;font-family:var(--display);font-weight:400;font-size:19px}
+.rule span{font-size:13.5px;line-height:1.35;color:#d8c8b0}
+.r-eden b{color:var(--eden)} .r-garden b{color:#f0a0a8} .r-hell b{color:var(--hell)}
+.keys{font-size:13px;color:#bfae92;margin-top:4px;line-height:1.9}
+.keys kbd{font-family:var(--body);border:1px solid rgba(201,162,74,.6);border-bottom-width:2px;padding:0 5px;border-radius:2px;color:var(--gilt-soft)}
+.big{font-size:20px;padding:12px 26px;margin-top:10px;background:#3b2410;color:var(--flesh)}
+.credit{font-size:12px;color:#9c8a70;margin-top:14px}
+.credit a{color:var(--gilt-soft)}
+#loading{font-family:var(--display);font-style:italic;color:var(--gilt-soft)}
+
+.album{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px;margin:12px 0 4px;text-align:left}
+.slot{border:1px solid rgba(201,162,74,.35);background:#1b130c;padding:4px;display:flex;flex-direction:column;gap:4px;min-width:0;cursor:default;color:inherit;font:inherit;text-align:left}
+.slot .crop{width:100%;height:auto;aspect-ratio:1;max-width:100%}
+.slot .nm{font-size:12px;line-height:1.2;min-height:2.4em;overflow:hidden}
+.slot.unk .crop{background:repeating-linear-gradient(45deg,#1d140c 0 6px,#231910 6px 12px)!important;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:34px;color:rgba(201,162,74,.5)}
+.slot.got{cursor:pointer;border-color:rgba(201,162,74,.8)}
+.slot.r2.got{box-shadow:0 0 0 1px #ffcf5a,0 0 12px rgba(255,190,60,.35)}
+.panelhead{grid-column:1/-1;font-family:var(--caps);letter-spacing:.16em;font-size:13px;margin-top:8px;border-bottom:1px solid rgba(201,162,74,.4);padding-bottom:3px}
+.detail{display:grid;grid-template-columns:160px 1fr;gap:14px;text-align:left;align-items:start;margin:10px 0;border:1px solid rgba(201,162,74,.4);padding:10px}
+.detail .crop{width:160px;height:160px}
+.detail h3{margin:0 0 4px;font-family:var(--display);font-weight:400;font-size:24px}
+.board{margin:16px auto 0;text-align:left;border-top:1px solid rgba(201,162,74,.5);padding-top:10px;max-width:440px}
+.board h2{margin:0 0 6px;font-family:var(--caps);font-weight:400;font-size:14px;letter-spacing:.16em;color:var(--gilt);text-align:center}
+.board ol{list-style:none;margin:0;padding:0;font-variant-numeric:tabular-nums}
+.board li{display:grid;grid-template-columns:28px 1fr auto auto;gap:10px;padding:3px 4px;border-bottom:1px dotted rgba(201,162,74,.25);font-size:15px}
+.board li .r{font-family:var(--display);color:var(--gilt)}
+.board li .n{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.board li .f{color:#bfae92;font-size:13px;align-self:center}
+.board li .s{font-family:var(--display);font-size:17px}
+.board li.me{background:rgba(201,162,74,.14)}
+.board .empty{font-size:14px;color:#bfae92;text-align:center;font-style:italic;margin:6px 0}
+.post{display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap;align-items:center}
+.post input{font:16px var(--body);background:#1d140c;color:var(--flesh);border:1px solid var(--gilt);padding:9px 10px;border-radius:2px;width:180px;max-width:100%}
+.post-msg{font-size:13.5px;color:#d8c8b0;min-height:1.2em;margin:6px 0 0}
+.row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+.mapwrap{position:relative;width:100%;margin:10px 0;border:1px solid var(--gilt)}
+.mapwrap img{display:block;width:100%;height:auto}
+.mapwrap .dot{position:absolute;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:#ffcf5a;box-shadow:0 0 0 2px #120c08,0 0 10px #ffcf5a}
+.mapwrap .me{position:absolute;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:#fff;box-shadow:0 0 0 2px #c8202a}
+.counts{display:flex;justify-content:center;gap:16px;flex-wrap:wrap;font-family:var(--display);font-size:18px}
+#err{position:fixed;left:16px;bottom:16px;z-index:20;max-width:min(520px,calc(100vw - 32px));background:#2a0d08;border:1px solid #ff7a5a;color:#ffd9cf;font:13px/1.4 var(--body);padding:8px 10px;white-space:pre-wrap}
+@media (max-width:560px){
+  .rules{grid-template-columns:1fr}
+  .plate span{font-size:19px}
+  .plate{padding:4px 8px;min-width:48px}
+  .sheet-inner{padding:20px 14px}
+  .hud .btn{font-size:12px;padding:7px 9px}
+  #card{grid-template-columns:92px 1fr;bottom:calc(48px + env(safe-area-inset-bottom,0px))}
+  #card .crop{width:92px;height:92px}
+  #card h3{font-size:20px}
+  .detail{grid-template-columns:1fr}
+  .detail .crop{width:100%;height:auto;aspect-ratio:1}
+}
+/* story tour: caption plate at the bottom, everything game-only hidden */
+#vig{background:radial-gradient(ellipse 72% 68% at 50% 36%,rgba(18,12,8,0) 55%,rgba(18,12,8,.6) 100%);opacity:0;transition:opacity 1.2s}
+body.story #vig{opacity:1}
+body.story .hud,body.story #heat,body.story #mini,body.story .touchpad,body.story #stick,body.story #card,body.story #perf{display:none!important}
+#story{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:min(660px,calc(100vw - 32px));z-index:8;background:var(--panel);border:1px solid var(--gilt);padding:14px 18px 12px;box-shadow:0 12px 40px rgba(0,0,0,.55)}
+#story .st-top{display:flex;justify-content:space-between;gap:12px;font-family:var(--caps);font-size:13px;letter-spacing:.12em;color:var(--gilt)}
+#stPanel.p0{color:var(--eden)}#stPanel.p1{color:#ff9aa6}#stPanel.p2{color:var(--hell)}
+.st-txt{transition:opacity .45s}.st-txt.fade{opacity:0}
+#story h3{font-family:var(--display);font-weight:400;font-size:clamp(22px,3.4vw,28px);line-height:1.1;margin:4px 0 6px;color:var(--flesh);text-wrap:balance}
+#story p{margin:0;font-size:15px;line-height:1.45;color:#e4d6bf;min-height:4.35em;text-wrap:pretty}
+.st-bar{height:3px;background:rgba(201,162,74,.22);margin:12px 0 10px;display:flex;gap:2px}
+.st-bar i{display:block;flex:1;height:100%;background:rgba(201,162,74,.25);position:relative;overflow:hidden}
+.st-bar i b{position:absolute;inset:0;background:var(--gilt);transform-origin:left;transform:scaleX(0)}
+.st-row{display:flex;gap:8px;flex-wrap:wrap}
+.st-row .btn{font-size:13px;padding:7px 11px}
+#stExit{margin-left:auto;color:var(--ink);background:var(--gilt-soft)}
+.btn.ghost{background:transparent}
+@media (max-width:560px){#story{padding:12px 14px 10px}#story p{font-size:14px}.st-row .btn{font-size:12px;padding:7px 9px}}
+@media (prefers-reduced-motion:reduce){#card,#toast,#flash{transition:none}.plate span.bump{animation:none}.st-txt{transition:none}}
+</style>
+
+<canvas id="gl" aria-label="Dünyevi Zevkler Bahçesi'nin içinde uçulan üç boyutlu dünya"></canvas>
+<div class="overlay" id="flash"></div>
+<div class="overlay" id="hurt"></div>
+<div class="overlay" id="vig"></div>
+
+<div class="hud tl">
+  <div class="plate"><b>Keşif</b><span id="found">0 / 34</span></div>
+  <div class="plate"><b>Seri</b><span id="streak">–</span></div>
+  <div class="plate"><b>Kaçış</b><span id="escapes">0</span></div>
+  <div class="plate"><b>Puan</b><span id="score">0</span></div>
+</div>
+<div class="hud tr">
+  <button class="btn" id="albumBtn" type="button" title="Keşif Defteri (B)">Defter</button>
+  <button class="btn" id="mapBtn" type="button" title="Tablonun tamamı (T)">Tablo</button>
+  <button class="btn" id="storyHudBtn" type="button" title="Tablonun hikâyesi (H)">Hikâye</button>
+  <button class="btn" id="viewBtn" type="button" title="Kuş bakışı / içine dal (V)">İçine dal</button>
+  <button class="btn" id="muteBtn" type="button" title="Sesi aç/kapat (M)">Ses: açık</button>
+</div>
+<div id="heat" hidden><div class="bar"><div class="fill" id="heatFill"></div></div><small id="heatTxt">soğuk</small></div>
+<div id="toast" aria-live="polite"></div>
+<div id="card" role="status" aria-live="polite"><div class="crop" id="cardCrop"></div><div class="txt"><div class="rar" id="cardRar"></div><h3 id="cardTitle"></h3><p id="cardText"></p></div></div>
+<canvas id="mini" width="240" height="129" aria-hidden="true"></canvas>
+<div id="perf" aria-hidden="true"></div>
+<div class="touchpad" id="touchpad" hidden>
+  <button class="btn" id="upBtn" type="button">Yüksel</button>
+  <button class="btn" id="downBtn" type="button">Alçal</button>
+  <button class="btn" id="dashBtn" type="button">Atıl</button>
+</div>
+<div id="stick" hidden><i></i></div>
+<audio id="music" src="music.mp3" loop preload="none"></audio>
+
+<div class="sheet" id="startSheet">
+  <div class="sheet-inner">
+    <div class="eyebrow">Hieronymus Bosch · y. 1490–1510 · Prado</div>
+    <h1>Dünyevi Zevkler <i>Bahçesi</i></h1>
+    <p>Tablonun içine gir. Küçük bir saka kuşu olarak üç panelin arasında uç. Tabloda 34 sır saklı. Onları bul, Keşif Defteri'ni doldur.</p>
+    <div class="rules">
+      <div class="rule r-eden"><b>Cennet · 8 sır</b><span>Soldaki panel. Hayvanlar ve Hayat Çeşmesi. Güvenli.</span></div>
+      <div class="rule r-garden"><b>Bahçe · 17 sır</b><span>Ortadaki panel. Dev meyveler, kuşlar, cam küreler.</span></div>
+      <div class="rule r-hell"><b>Cehennem · 9 sır</b><span>Sağdaki panel. Efsane sırlar burada, ama iblisler peşine düşer.</span></div>
+    </div>
+    <p>Tablo bir sahne: zürafa, yaban domuzu, saka kuşu, dev balık, kulaklar ve tavşan avcı tablonun üstünde dolaşıyor. Sırları onlarla birlikte yer değiştiriyor.</p>
+    <p>Önce tabloyu tanımak istersen <b>Hikâyeyi izle</b>: sahneler soldan sağa, yaratılıştan cehenneme sırayla canlanır.</p>
+    <p>Oyun <b>kuş bakışı</b> başlar: tablonun tamamı önünde serili. İstediğin an <b>İçine dal</b> tuşuyla aralarına in.</p>
+    <p>Sırra yaklaştıkça alttaki <b>sezgi çubuğu</b> ısınır. Çok yakınında pırıltı görürsün.</p>
+    <p class="keys">Fareyi basılı tutup sürükle ya da <kbd>A</kbd><kbd>D</kbd> / oklar: dön · <kbd>W</kbd> hızlan · <kbd>S</kbd> yavaşla · <kbd>Boşluk</kbd> yüksel · <kbd>Shift</kbd> alçal · <kbd>E</kbd> atıl · <kbd>B</kbd> defter · <kbd>T</kbd> tablo · <kbd>M</kbd> ses · <kbd>V</kbd> kuş bakışı / içine dal · fare tekerleği: yakınlaş</p>
+    <p id="loading">boyalar karıştırılıyor…</p>
+    <button class="btn big" id="startBtn" type="button" hidden>Tabloya gir</button>
+    <button class="btn big ghost" id="storyBtn" type="button" hidden>Hikâyeyi izle</button>
+    <div class="board" id="boardStart" hidden><h2>Kâşifler Panosu</h2><ol></ol><p class="empty" hidden></p></div>
+    <p class="credit">Tablo: Hieronymus Bosch, <a href="https://commons.wikimedia.org/wiki/File:Garden_delights.jpg" target="_blank" rel="noopener">Wikimedia Commons</a> (kamu malı). Esin kaynağı: <a href="https://starrynightrider.com/" target="_blank" rel="noopener">Starry Nightrider</a>.</p>
+  </div>
+</div>
+
+<div class="sheet" id="albumSheet" hidden>
+  <div class="sheet-inner">
+    <div class="eyebrow">Keşif Defteri</div>
+    <h2 id="albumCount">0 / 34</h2>
+    <div class="counts" id="albumCounts"></div>
+    <div id="albumDetail"></div>
+    <div class="album" id="albumGrid"></div>
+    <form class="post" id="postForm" hidden>
+      <label for="nick" class="eyebrow">Adın</label>
+      <input id="nick" name="nick" maxlength="16" autocomplete="nickname" placeholder="ör. Kuşçu Barış">
+      <button class="btn" id="postBtn" type="submit">Panoya yaz</button>
+    </form>
+    <p class="post-msg" id="postMsg"></p>
+    <div class="board" id="boardAlbum" hidden><h2>Kâşifler Panosu</h2><ol></ol><p class="empty" hidden></p></div>
+    <div class="row"><button class="btn big" id="albumClose" type="button">Uçmaya dön</button><button class="btn" id="resetBtn" type="button">Defteri sıfırla</button></div>
+    <p class="post-msg" id="resetMsg"></p>
+  </div>
+</div>
+
+<div class="sheet" id="mapSheet" hidden>
+  <div class="sheet-inner" style="max-width:980px">
+    <div class="eyebrow">Tablonun tamamı</div>
+    <div class="mapwrap" id="mapWrap"><img src="painting_small.jpg" alt="Triptiğin tamamı; altın noktalar bulduğun sırlar, beyaz nokta sensin"></div>
+    <p>Altın noktalar bulduğun sırlar, beyaz nokta sensin. Bulamadıkların gizli.</p>
+    <button class="btn big" id="mapClose" type="button">Uçmaya dön</button>
+  </div>
+</div>
+<div id="story" hidden role="region" aria-label="Tablonun hikâyesi">
+  <div class="st-txt" id="stTxt">
+    <div class="st-top"><span id="stPanel"></span><span id="stNum"></span></div>
+    <h3 id="stTitle"></h3>
+    <p id="stText" aria-live="polite"></p>
+  </div>
+  <div class="st-bar" id="stBar"></div>
+  <div class="st-row">
+    <button class="btn" id="stPrev" type="button" title="Önceki sahne (←)">◀ Geri</button>
+    <button class="btn" id="stPause" type="button" title="Duraklat (Boşluk)">Duraklat</button>
+    <button class="btn" id="stNext" type="button" title="Sonraki sahne (→)">İleri ▶</button>
+    <button class="btn" id="stMute" type="button" title="Sesi aç/kapat (M)">Ses</button>
+    <button class="btn" id="stExit" type="button" title="Hikâyeden çık (Esc)">Kendin uç</button>
+  </div>
+</div>
+<div id="err" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" integrity="sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu" crossorigin="anonymous"></script>
+<script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id);
+// show any runtime error on screen, so a screenshot is enough to report it
+function showErr(m){const e=$('err');e.hidden=false;e.textContent='Hata: '+m+'\nBu kutunun ekran görüntüsünü Claude\'a gönderebilirsin.'}
+addEventListener('error',e=>showErr((e.message||'bilinmeyen')+(e.lineno?' (satır '+e.lineno+')':'')));
+addEventListener('unhandledrejection',e=>showErr(String(e.reason&&e.reason.message||e.reason)));
+if(!window.THREE){showErr('3B kütüphanesi yüklenemedi. Sayfayı yenile.');return}
+
+// ---------- world constants: painting pixels are world units ----------
+const W=3200,H=1713,HZ=480;           // HZ: image row where the painted ground meets the standing backdrop
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+
+// ---------- the 34 secrets (verified against the painting) ----------
+// r = crop radius in painting px; rar: 0 yaygın, 1 nadir, 2 efsane
+const SECRETS=[
+ {id:'cesme_baykus',p:0,x:414,y:850,r:48,rar:1,t:"Çeşmenin içindeki baykuş",d:"Hayat Çeşmesi'nin pembe gövdesindeki yuvarlak delikten bir baykuş bakıyor. Cennetin tam ortasında bile gözetleyen biri var."},
+ {id:'fil',p:0,x:316,y:532,r:70,rar:0,t:"Fil",d:"Bosch fili muhtemelen hiç görmedi; gezginlerin anlatımlarından ve çizimlerden yola çıktı. Sırtında küçük bir maymun oturuyor."},
+ {id:'zurafa',p:0,x:578,y:585,r:80,rar:0,t:"Beyaz zürafa",d:"Uzun boyunlu, benekli bir zürafa. 15. yüzyıl Avrupası için neredeyse efsanevi bir hayvan."},
+ {id:'tekboynuz',p:0,x:196,y:628,r:60,rar:1,t:"Tek boynuzlu at",d:"Beyaz tek boynuzlu at sudan içiyor. Orta Çağ'da boynuzunun suyu arındırdığına inanılırdı."},
+ {id:'tanri',p:0,x:444,y:1100,r:90,rar:0,t:"Tanrı, Adem ve Havva",d:"Tanrı, Havva'yı yeni uyanan Adem'e tanıtıyor. Bütün hikâye bu sessiz el tutuşmasıyla başlıyor."},
+ {id:'kaya',p:0,x:224,y:244,r:80,rar:1,t:"Yüzlü kaya",d:"Turuncu kaya kütlesine dikkatle bak: içinde gizlenmiş yüzler ve bir kuş sürüsü çıkan bir mağara var."},
+ {id:'armadillo',p:0,x:678,y:490,r:45,rar:0,t:"Zırhlı yaratık",d:"Domuz mu, armadillo mu? Bosch'un hayvanları bilinenle hayal edilen arasında bir yerde durur."},
+ {id:'antilop',p:0,x:563,y:438,r:40,rar:0,t:"Antiloplar",d:"Çayırın üst kenarında iki antilop. Cennet panelinde hayvanlar henüz birbirini yemiyor... çoğunlukla."},
+ {id:'cilek',p:1,x:1242,y:1347,r:60,rar:0,t:"Dev çilek",d:"İnsan boyunda bir çilek. Tadı çabuk geçen zevkin simgesi; tablonun lakabı da buradan gelir."},
+ {id:'camkure',p:1,x:1100,y:1125,r:60,rar:1,t:"Cam küredeki âşıklar",d:"Bir çift saydam bir kürenin içinde sarılmış. Flaman atasözü der ki: mutluluk cam gibidir, çabuk kırılır."},
+ {id:'dev_baykus',p:1,x:933,y:1095,r:55,rar:0,t:"Dev baykuş",d:"Kocaman gözlü bir baykuş bahçeye bakıyor. Bosch'ta baykuş hem bilgelik hem de karanlığın habercisidir."},
+ {id:'saka',p:1,x:1180,y:975,r:60,rar:0,t:"Dev saka kuşu",d:"Senin akrabanın dev hâli: kırmızı yüzlü bir saka kuşu, insanlardan büyük."},
+ {id:'yalicapkini',p:1,x:972,y:1005,r:55,rar:0,t:"Yalıçapkını",d:"Parlak mavi tüyleriyle bir yalıçapkını. Bosch kuşları gerçeğe şaşırtıcı derecede sadık çizmiş."},
+ {id:'ibibik',p:1,x:1085,y:890,r:50,rar:0,t:"Yeşil ağaçkakan",d:"Kırmızı tepeli, uzun gagalı bir ağaçkakan, çıplak figürlerin arasında dev gibi duruyor."},
+ {id:'dev_balik',p:1,x:1480,y:1565,r:80,rar:0,t:"Kıyıdaki balık",d:"Çimenin üstünde yatan kocaman bir balık. Bahçede kara ve su birbirine karışmış."},
+ {id:'midye',p:1,x:1345,y:1192,r:70,rar:1,t:"Midye kabuğu",d:"Dev bir midye kabuğu bir adamın sırtında taşınıyor. İçinde saklanan bir çiftin bacakları görünüyor."},
+ {id:'havuz',p:1,x:1620,y:740,r:110,rar:0,t:"Gençlik Havuzu",d:"Yuvarlak havuzda yalnızca kadınlar yıkanıyor; başlarında kuşlar ve meyveler var."},
+ {id:'atlilar',p:1,x:1650,y:650,r:110,rar:0,t:"Atlılar halkası",d:"Erkekler at, deve, domuz ve tek boynuzlu atlara binip havuzun çevresinde dönüyor. Bitmeyen bir arzu çemberi."},
+ {id:'mavi_kure',p:1,x:1620,y:500,r:90,rar:0,t:"Mavi küre",d:"Ortadaki gölde çatlak mavi bir küre. Üstünde bir kule, içinde yıkanan insanlar."},
+ {id:'pembe_kale',p:1,x:1180,y:422,r:110,rar:0,t:"Pembe kale",d:"Mercan ya da et gibi büyüyen pembe bir yapı. Bosch mimariyi taştan değil canlı dokudan kurar."},
+ {id:'grifon',p:1,x:1005,y:215,r:60,rar:1,t:"Grifon binicisi",d:"Gökyüzünde bir figür kanatlı bir grifona binmiş uçuyor. Başında bir balık var."},
+ {id:'ucan_balik',p:1,x:2245,y:225,r:60,rar:1,t:"Uçan balık",d:"Sağ üst köşede bir balık gökyüzünde süzülüyor. Bahçede hiçbir şey yerinde durmuyor."},
+ {id:'sag_baykus',p:1,x:2195,y:1050,r:50,rar:0,t:"İkinci baykuş",d:"Bahçenin sağında bir baykuş daha, kalabalığın ortasında sessizce oturuyor."},
+ {id:'kirmizi_A',p:1,x:1749,y:1057,r:70,rar:1,t:"Kırmızı kule",d:"Bahçenin ortasında kırmızı, çatallı bir yapı yükseliyor; dibinde bir kalabalık toplanmış."},
+ {id:'bogurtlen',p:1,x:1314,y:1088,r:50,rar:1,t:"Böğürtlen taç",d:"Suyun içindeki figürlerin başında dev bir böğürtlen kümesi duruyor, bir taç gibi."},
+ {id:'kulaklar',p:2,x:2660,y:550,r:80,rar:2,t:"Kulaklar ve bıçak",d:"Bir bıçakla delinmiş iki dev kulak bir savaş arabası gibi ilerliyor, altındakileri ezerek."},
+ {id:'agac_adam',p:2,x:2876,y:648,r:70,rar:2,t:"Ağaç-Adam",d:"Gövdesi kırık bir yumurta, bacakları kuru ağaç. Şapkasında bir gayda var. Yüzünün Bosch'un kendisi olduğu söylenir."},
+ {id:'prens',p:2,x:3008,y:1100,r:90,rar:2,t:"Cehennem Prensi",d:"Kuş başlı, kazandan şapkalı bir canavar yüksek tahtında oturup günahkârları yutuyor."},
+ {id:'arp',p:2,x:2636,y:1092,r:70,rar:2,t:"Arpa gerilen adam",d:"Bahçede zevk veren müzik burada işkenceye dönüşüyor: bir adam arpın tellerine gerilmiş."},
+ {id:'dev_lir',p:2,x:2764,y:1116,r:70,rar:2,t:"Dev çalgı",d:"İnsanlardan büyük ahşap bir çalgı. Bosch'un müzik cehenneminin ortasında duruyor."},
+ {id:'patenci',p:2,x:2985,y:930,r:60,rar:2,t:"Buzdaki patenci",d:"Donmuş gölde kayan bir figür, tuhaf bir kayık-kızağın üstünde. Buz incecik."},
+ {id:'tavsan',p:2,x:2745,y:1295,r:60,rar:2,t:"Avcı tavşan",d:"Roller tersine dönmüş: boynuz üfleyen dev bir tavşan avcının yerini almış."},
+ {id:'domuz_rahibe',p:2,x:3070,y:1525,r:70,rar:2,t:"Rahibe domuz",d:"Rahibe başlığı takmış bir domuz, bir adamı belge imzalamaya ikna etmeye çalışıyor. Kilisenin para hırsına bir iğne."},
+ {id:'yanan_sehir',p:2,x:2700,y:260,r:120,rar:2,t:"Yanan şehir",d:"Cehennemin tepesinde karanlıkta yanan bir şehir. Alevlerin önünde siluetler kaçışıyor."},
+];
+const PANEL_NAMES=['Cennet','Bahçe','Cehennem'];
+const RAR_NAMES=['Yaygın','Nadir','Efsane'];
+SECRETS.forEach(s=>{s.onBack=s.y<HZ;s.pos=new THREE.Vector3(s.x,6,s.y)});
+let found=new Set();
+try{const a=JSON.parse(store.get('bahce3d-found')||'[]');if(Array.isArray(a))a.forEach(id=>{if(SECRETS.some(s=>s.id===id))found.add(id)})}catch(e){}
+function saveFound(){store.set('bahce3d-found',JSON.stringify([...found]))}
+function cropStyle(el,s,size){
+  const k=size/(2*s.r);
+  el.style.backgroundImage='url(painting_small.jpg)';
+  el.style.backgroundSize=`${W*k}px ${H*k}px`;
+  el.style.backgroundPosition=`${-(s.x-s.r)*k}px ${-(s.y-s.r)*k}px`;
+}
+
+// ---------- renderer / scene ----------
+const cv=$('gl');
+let renderer;
+try{renderer=new THREE.WebGLRenderer({canvas:cv,antialias:false,powerPreference:'high-performance'})}
+catch(e){showErr('Bu tarayıcı 3B grafiği (WebGL) açamadı.');return}
+const scene=new THREE.Scene();
+const SKY_GARDEN=new THREE.Color('#cfdcd8'),SKY_HELL=new THREE.Color('#1a0f0b'),SKY_EDEN=new THREE.Color('#d8e2e6');
+scene.background=SKY_GARDEN.clone();
+scene.fog=new THREE.Fog(SKY_GARDEN.clone(),700,2300);
+const camera=new THREE.PerspectiveCamera(62,1,1,8000);
+scene.add(new THREE.HemisphereLight(0xfff4e0,0x5a6a3a,0.95));
+const sun=new THREE.DirectionalLight(0xffffff,0.55);sun.position.set(-400,800,600);scene.add(sun);
+const mini=$('mini'),mctx=mini.getContext('2d');
+
+let quality=1,cw=1,ch=1;
+let state='menu';
+function resize(){
+  cw=innerWidth;ch=innerHeight;
+  const dpr=window.devicePixelRatio||1;
+  renderer.setPixelRatio(Math.min(dpr,Math.sqrt(2.2e6/(cw*ch)))*quality);
+  renderer.setSize(cw,ch,false);
+  camera.aspect=cw/ch;camera.updateProjectionMatrix();
+  const mw=Math.min(240,Math.max(140,cw*0.22));mini.style.width=mw+'px';mini.style.height=(mw*H/W)+'px';
+  if(state!=='play')renderOnce();
+}
+
+// painted ground + painted backdrop share one texture
+const maxTex=renderer.capabilities.maxTextureSize||4096;
+const texLoader=new THREE.TextureLoader();
+let ready=false;
+const paintMat=new THREE.MeshBasicMaterial({color:0xffffff});
+function setUV(geo,fn){const uv=geo.attributes.uv;for(let i=0;i<uv.count;i++){const r=fn(uv.getX(i),uv.getY(i));uv.setXY(i,r[0],r[1])}uv.needsUpdate=true}
+const groundGeo=new THREE.PlaneGeometry(W,H-HZ,1,1);
+groundGeo.rotateX(-Math.PI/2);
+setUV(groundGeo,(u,v)=>[u,v*(1-HZ/H)]);
+const ground=new THREE.Mesh(groundGeo,paintMat);ground.position.set(W/2,0,(HZ+H)/2);scene.add(ground);
+const backGeo=new THREE.PlaneGeometry(W,HZ,1,1);
+setUV(backGeo,(u,v)=>[u,(1-HZ/H)+v*(HZ/H)]);
+const backdrop=new THREE.Mesh(backGeo,paintMat);backdrop.position.set(W/2,HZ/2,HZ);scene.add(backdrop);
+// dark floor beyond the painting's edge so nothing floats in the void
+const under=new THREE.Mesh(new THREE.PlaneGeometry(W*3,H*3),new THREE.MeshBasicMaterial({color:0x1a120c}));under.rotateX(-Math.PI/2);under.position.set(W/2,-2,H/2);scene.add(under);
+
+texLoader.load(maxTex>=4096?'painting.jpg':'painting_small.jpg',tex=>{
+  tex.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
+  tex.minFilter=THREE.LinearMipmapLinearFilter;
+  paintMat.map=tex;paintMat.needsUpdate=true;
+  ready=true;$('loading').hidden=true;$('startBtn').hidden=false;$('storyBtn').hidden=false;
+  try{$('startBtn').focus({preventScroll:true})}catch(e){}
+  renderOnce();
+},undefined,()=>{$('loading').textContent='Tablo yüklenemedi. Sayfayı yenilemeyi dene.'});
+
+// ---------- theatre: painted figures cut out along their real outline, roaming the painting ----------
+// actors.webp holds, per actor, its true painted pixels (sprite) and the repainted ground behind it (fill).
+// The fill closes the hole in the painting; the sprite walks, flies, swims or skates around the stage.
+// figures that are cut out in actors.webp; every other figure keeps bending in place (rigs below)
+const ACTOR_NAMES=new Set(['zurafa','domuz','ayi','antiloplar','saka','buyukbalik','kulaklar','tavsan','patenci','patenciler']);
+const AREA={eden:[60,560,760,1630],edenSky:[60,60,760,450],garden:[900,580,2300,1630],gardenSky:[900,60,2300,450],hell:[2520,1020,3150,1630],hellTop:[2520,520,3150,880],lake:[2820,900,3150,1000]};
+const ACT_CFG={
+  zurafa:{k:'walk',face:-1,sp:22,area:'eden',R:280,sec:'zurafa',snd:'snort'},
+  fil:{k:'walk',face:1,sp:18,area:'eden',R:260,sec:'fil',snd:'trumpet'},
+  tekboynuz:{k:'walk',face:-1,sp:30,area:'eden',R:300,sec:'tekboynuz',snd:'chime'},
+  domuz:{k:'walk',face:-1,sp:34,area:'eden',R:300,snd:'snort'},
+  ayi:{k:'walk',face:-1,sp:16,area:'eden',R:160,snd:'growl'},
+  antiloplar:{k:'walk',face:-1,sp:46,area:'eden',R:360,sec:'antilop',snd:'hooves'},
+  saka:{k:'bird',face:1,sp:40,area:'garden',R:320,sec:'saka',snd:'chirp'},
+  ibibik:{k:'bird',face:1,sp:40,area:'garden',R:300,sec:'ibibik',snd:'chirp'},
+  yalicapkini:{k:'bird',face:1,sp:40,area:'garden',R:300,sec:'yalicapkini',snd:'chirp'},
+  baykus1:{k:'owl',face:1,sp:30,area:'garden',R:220,sec:'dev_baykus',snd:'hoot'},
+  baykus2:{k:'owl',face:1,sp:30,area:'garden',R:220,sec:'sag_baykus',snd:'hoot'},
+  ordek3:{k:'fish',face:1,sp:24,area:'garden',R:120,snd:'quack'},
+  buyukbalik:{k:'fish',face:-1,sp:20,area:'garden',R:170,sec:'dev_balik',snd:'bubbles'},
+  balik:{k:'fish',face:-1,sp:22,area:'garden',R:140,snd:'bubbles'},
+  grifon:{k:'flyer',face:1,sp:0,area:'gardenSky',sec:'grifon',snd:'chirp'},
+  ucan2:{k:'flyer',face:-1,sp:0,area:'gardenSky',sec:'ucan_balik',snd:'bubbles'},
+  kulaklar:{k:'walk',face:-1,sp:14,area:'hellTop',R:220,sec:'kulaklar',snd:'drum'},
+  sovalye:{k:'walk',face:1,sp:24,area:'hell',R:260,snd:'groan'},
+  tavsan:{k:'walk',face:1,sp:28,area:'hell',R:260,sec:'tavsan',snd:'groan'},
+  patenci:{k:'skate',face:-1,sp:42,area:'lake',sec:'patenci',snd:'groan'},
+  prens:{k:'seat',face:1,sp:0,area:'hell',sec:'prens',snd:'groan'},
+};
+const actors=[],actorLoaded=new Set();
+const actorMat=new THREE.MeshBasicMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,alphaTest:0.02});
+const fillMat=new THREE.MeshBasicMaterial({transparent:true,depthWrite:false,alphaTest:0.01});
+const shadowMat=new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0.3,depthWrite:false});
+const AG_NX=6,AG_NY=8;
+function atlasUV(geo,r,aw,ah){const u0=r[0]/aw,u1=(r[0]+r[2])/aw,v1=1-r[1]/ah,v0=1-(r[1]+r[3])/ah;setUV(geo,(u,v)=>[u0+u*(u1-u0),v0+v*(v1-v0)])}
+function loadActors(){
+  fetch('actors.json').then(r=>r.ok?r.json():Promise.reject(r.status)).then(data=>{
+    texLoader.load('actors.webp',tex=>{
+      tex.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
+      actorMat.map=tex;actorMat.needsUpdate=true;fillMat.map=tex;fillMat.needsUpdate=true;
+      for(const a of data.a){
+        const cfg=ACT_CFG[a.n];if(!cfg)continue;
+        const [fx,fy,fw,fh]=a.f.slice(4),[sx,sy,sw,sh]=a.s.slice(4);
+        // fill: lies on the painting exactly where the figure was painted
+        const fg=new THREE.PlaneGeometry(fw,fh);atlasUV(fg,a.f,data.aw,data.ah);
+        const fm=new THREE.Mesh(fg,fillMat);fm.renderOrder=1;
+        if(fy+fh<=HZ+2){fm.position.set(fx+fw/2-W/2,HZ/2-(fy+fh/2),1.0);backdrop.add(fm)}
+        else{fm.rotation.x=-Math.PI/2;fm.position.set(fx+fw/2,1.0,fy+fh/2);scene.add(fm)}
+        // sprite: a small grid so the body can bend; feet at the local origin
+        const g=new THREE.PlaneGeometry(sw,sh,AG_NX,AG_NY);g.translate(0,sh/2,0);atlasUV(g,a.s,data.aw,data.ah);
+        const rest=Float32Array.from(g.attributes.position.array);
+        const m=new THREE.Mesh(g,actorMat);
+        const root=new THREE.Group();root.rotation.order='YXZ';root.add(m);scene.add(root);
+        const sh_=new THREE.Mesh(new THREE.CircleGeometry(1,20),shadowMat);sh_.rotation.x=-Math.PI/2;sh_.renderOrder=2;scene.add(sh_);
+        const hx=sx+sw/2,hy=sy+sh;
+        const A={n:a.n,cfg,root,m,g,rest,shadow:sh_,w:sw,h:sh,home:{x:hx,y:hy},x:hx,y:hy,tx:hx,ty:hy,mode:'pause',t:rand(1,4),
+          dir:cfg.face,sx:1,ph:Math.random()*6,walk:0,alt:0,E:0,Et:0,cool:0,fl:null,sky:hy<=HZ+2};
+        if(cfg.k==='flyer'){const ar=AREA[cfg.area];A.fl={cx:hx,cy:hy,rx:Math.min(380,(ar[2]-ar[0])/3),ry:110,a:rand(0.07,0.11),b:rand(0.13,0.19),p:Math.random()*6};A.alt=1}
+        actors.push(A);actorLoaded.add(a.n);if(a.n==='patenci')actorLoaded.add('patenciler');
+      }
+      for(const c of creatures)if(actorLoaded.has(c.n))c.dead=true;
+      actorsPose(0);renderOnce();
+    });
+  }).catch(()=>{});
+}
+function pickTarget(A,story){
+  const ar=AREA[A.cfg.area],R=story?140:(A.cfg.R||200);
+  if(Math.random()<0.25){A.tx=A.home.x;A.ty=A.home.y;return}
+  for(let i=0;i<8;i++){const a=Math.random()*6.283,r=R*Math.sqrt(Math.random());
+    const x=A.home.x+Math.cos(a)*r,y=A.home.y+Math.sin(a)*r*0.7;
+    if(x>ar[0]&&x<ar[2]&&y>ar[1]&&y<ar[3]){A.tx=x;A.ty=y;return}}
+  A.tx=A.home.x;A.ty=A.home.y;
+}
+// painting point (+ height above it) -> world, following the backdrop fold for the sky
+const AW=new THREE.Vector3();
+function paintToWorld(x,y,up){
+  if(y>=HZ){AW.set(x,up,y);return AW}
+  const a=ov*Math.PI/2,ca=Math.cos(a),sa=Math.sin(a),h=HZ-y;
+  AW.set(x,ca*h+sa*up,HZ-sa*h+ca*up);return AW;
+}
+function actorsUpdate(dt,story){
+  for(const A of actors){
+    const c=A.cfg;A.E+=(A.Et-A.E)*Math.min(1,dt*2);const boost=1+0.7*A.E;
+    A.ph+=dt;A.t-=dt;let vx=0,vy=0,moving=false;
+    if(c.k==='flyer'){
+      const f=A.fl,T=A.ph;const nx=f.cx+f.rx*Math.sin(T*f.a*6.283*0.25+f.p),ny=f.cy+f.ry*Math.sin(T*f.b*6.283*0.25);
+      vx=nx-A.x;vy=ny-A.y;A.x=nx;A.y=Math.max(60,ny);moving=true;A.walk+=dt*7*boost;
+    } else if(c.k==='seat'){A.walk+=dt*2*boost}
+    else if(A.mode==='fly'){
+      // birds take off, circle over the garden and land somewhere near home
+      A.fp+=dt*boost;const k=Math.min(1,A.fp/A.fdur),e=Math.sin(k*Math.PI);
+      const ang=A.fa0+k*A.fturn,nx=A.fcx+Math.cos(ang)*A.frad,ny=A.fcy+Math.sin(ang)*A.frad*0.6;
+      const bx=A.fx0+(A.tx-A.fx0)*k,by=A.fy0+(A.ty-A.fy0)*k;
+      const X=bx+(nx-bx)*e,Y=by+(ny-by)*e;vx=X-A.x;vy=Y-A.y;A.x=X;A.y=Y;A.alt=e;moving=true;A.walk+=dt*16;
+      if(k>=1){A.mode='pause';A.t=rand(2,5);A.alt=0}
+    } else if(A.mode==='walk'){
+      const dx=A.tx-A.x,dy=A.ty-A.y,d=Math.hypot(dx,dy),sp=c.sp*boost;
+      if(d<2){A.mode='pause';A.t=rand(1.5,4.5)/boost}
+      else{const s=Math.min(d,sp*dt);vx=dx/d*s;vy=dy/d*s;A.x+=vx;A.y+=vy;moving=true;A.walk+=dt*sp*0.22}
+    } else if(A.t<=0){
+      pickTarget(A,story);
+      if((c.k==='bird'&&Math.random()<0.55)||(c.k==='owl'&&Math.random()<0.3)){
+        A.mode='fly';A.fp=0;A.fdur=rand(5,8);A.fx0=A.x;A.fy0=A.y;A.fcx=(A.x+A.tx)/2;A.fcy=(A.y+A.ty)/2-60;A.frad=story?90:rand(140,240);A.fa0=Math.random()*6.283;A.fturn=(Math.random()<.5?-1:1)*6.283;
+      } else if(c.k==='skate'){const ar=AREA.lake;A.tx=A.x<(ar[0]+ar[2])/2?rand(ar[2]-80,ar[2]-10):rand(ar[0]+10,ar[0]+80);A.ty=rand(ar[1]+30,ar[3]-5);A.mode='walk'}
+      else A.mode='walk';
+    }
+    if(Math.abs(vx)>0.02)A.dir=vx>0?1:-1;
+    const want=A.dir*c.face;A.sx+=(want-A.sx)*Math.min(1,dt*7);
+    A.moving=moving;
+    // voice when the bird passes close (play mode)
+    if(state==='play'&&A.cool<elapsed&&c.snd){const P_=paintToWorld(A.x,A.y,0),d=Math.hypot(P_.x-P.pos.x,P_.z-P.pos.z);if(d<230){voice(c.snd,1-d/260,(P_.x-P.pos.x)/300);A.cool=elapsed+10+Math.random()*6}}
+  }
+  actorsPose(dt);
+}
+const ATMP=new THREE.Vector3();
+function actorsPose(dt){
+  const lean=ov*Math.PI/2;
+  for(const A of actors){
+    const c=A.cfg,h=A.h,w=A.w,ph=A.walk,mv=A.moving?1:0;
+    // body bend (geometry in sprite space; x to the right, y up from the feet)
+    const pos=A.g.attributes.position.array,r=A.rest,F=c.face;
+    for(let i=0;i<pos.length;i+=3){
+      const x=r[i],y=r[i+1],u=x/w+0.5,v=y/h,uf=F>0?u:1-u;let dx=0,dy=0;
+      if(c.k==='walk'||c.k==='skate'){
+        const lw=Math.max(0,1-v/0.36);const side=uf>0.5?1:-1;
+        dx+=F*0.09*h*Math.sin(ph*6.283+(side>0?0:Math.PI))*lw*lw*mv;
+        dy+=0.025*h*Math.abs(Math.sin(ph*6.283))*(1-lw)*mv+0.008*h*Math.sin(A.ph*2.2)*v;
+        if(c.k==='skate')dx+=F*0.05*h*Math.sin(A.ph*1.3)*v;
+        dx+=F*0.015*h*Math.sin(A.ph*1.1)*Math.max(0,v-0.6);   // head sways a little
+      } else if(c.k==='bird'||c.k==='owl'){
+        if(A.alt>0.05){dy+=0.14*h*Math.sin(ph*1.6)*Math.pow(Math.abs(u-0.5)*2,1.5)*A.alt;dx+=(u-0.5)*w*0.06*Math.sin(ph*1.6)}
+        else{const pk=Math.pow(Math.max(0,Math.sin(A.ph*2.6)),8);dx+=F*0.05*h*pk*Math.max(0,v-0.5)*2;dy-=0.04*h*pk*Math.max(0,v-0.5)*2;dy+=0.012*h*Math.sin(A.ph*3)*v}
+        if(mv&&A.alt<=0.05)dy+=0.05*h*Math.abs(Math.sin(A.ph*9))*(1-v*0.3);
+      } else if(c.k==='fish'){dy+=0.10*h*Math.sin(6*uf-A.ph*5)*(0.3+(1-uf));}
+      else if(c.k==='flyer'){const a=Math.pow(Math.abs(u-0.5)*2,1.5);dy+=0.25*h*Math.sin(ph)*a;dx+=0.02*w*Math.sin(ph*0.5)}
+      else if(c.k==='seat'){const g=Math.max(0,v-0.45)*1.8;dy+=0.05*h*Math.sin(A.ph*2.2)*g;dx+=0.04*w*Math.sin(A.ph*1.1)*g*g}
+      pos[i]=x+dx;pos[i+1]=y+dy;
+    }
+    A.g.attributes.position.needsUpdate=true;
+    // place: lying on the painting from above, standing up inside; sky actors ride the backdrop
+    const up=(A.alt||0)*(c.k==='flyer'?40:70)+1.6;
+    const W_=paintToWorld(A.x,A.y,up);A.root.position.copy(W_);
+    const s=1+(A.alt||0)*0.25*(c.k==='flyer'?0.4:1);
+    A.m.scale.set(A.sx*s,s,1);
+    if(A.sky){A.root.rotation.set(-lean,0,0)}
+    else{const yaw=Math.atan2(camera.position.x-W_.x,camera.position.z-W_.z)*(1-ov);A.root.rotation.set(-lean,yaw,0)}
+    A.root.renderOrder=3+Math.round(A.y);A.m.renderOrder=A.root.renderOrder;
+    // shadow on the painting under the figure; drifts away while it flies
+    const S=paintToWorld(A.x+(A.alt||0)*18,A.y+(A.alt||0)*26,0.9);
+    A.shadow.position.copy(S);A.shadow.rotation.x=A.sky?-Math.PI/2+(1-ov)*Math.PI/2:-Math.PI/2;
+    const sw=w*0.42*(1-0.3*(A.alt||0)),shh=Math.max(4,h*0.12);A.shadow.scale.set(sw,shh,1);
+    A.shadow.material.opacity=0.3;A.shadow.visible=!A.sky||ov>0.5;
+    A.cx=W_.x;A.cz=W_.z;A.cy=W_.y;
+  }
+}
+// secrets that belong to an actor travel with it
+function actorSecrets(){
+  if(!actors.length)return;
+  for(const A of actors){const id=A.cfg.sec;if(!id)continue;const s=SECRETS.find(q=>q.id===id);if(!s)continue;
+    const W_=paintToWorld(A.x,A.y-A.h*0.4,6);s.pos.copy(W_)}
+}
+
+// ---------- living painting: figures are warped IN PLACE, never cut out ----------
+// Every figure's region of the painting becomes a fine mesh textured with the painting itself.
+// Vertices are pushed by small per-figure "rigs" (legs step, heads nod, wings beat, tails wave).
+// The push fades to zero at the mesh border, so the warped patch always meets the painting seamlessly.
+const RIG_KIND={zurafa:'giraffe',fil:'elephant',tekboynuz:'quad',antiloplar:'quad',domuz:'quad',sovalye:'quad',
+  ayi:'sway',kirpi:'sway',tavsan:'sway',canavar:'sway',
+  gokkuslari:'flock',beyazkuslar:'flock',
+  saka:'bird',yalicapkini:'bird',ibibik:'bird',ordek3:'bird',baskakus:'bird',
+  baykus1:'owl',baykus2:'owl',
+  buyukbalik:'fish',balik:'fish',denizkizi2:'fish',
+  grifon:'flyer',ucan2:'flyer',
+  kulaklar:'knife',patenciler:'skate',prens:'gobble'};
+const RIG_FACE={fil:1,saka:1,yalicapkini:1,ibibik:1,ordek3:1,baskakus:1};   // others face left
+// boxes that the old cut-out list got wrong, placed by eye on the painting
+const RIG_BOX={prens:[2974,1030,90,70],patenciler:[2950,905,105,60]};
+const RIG_W={giraffe:2.2,elephant:2.0,quad:3.6,bird:1.0,owl:1.0,fish:1.6,flyer:1.4,flock:1.0,rider:5.2,sway:1.4,gobble:1.0,knife:1.0,skate:1.0,ripple:1.0,flicker:1.0};
+const figs=[],patches=[];
+const RIG_STEP=7;
+function rigKind(n,k){if(k==='water')return'ripple';if(k==='fire')return'flicker';if(/^atli/.test(n))return'rider';return RIG_KIND[n]||'sway'}
+function buildRigs(list){
+  for(const p of list){
+    if(ACTOR_NAMES.has(p.n))continue;   // these walk the stage as actors instead
+    const kind=rigKind(p.n,p.k),b=RIG_BOX[p.n]||[p.x,p.y,p.w,p.h];
+    const fig={n:p.n,kind,f:RIG_FACE[p.n]||-1,x0:b[0],y0:b[1],w:b[2],h:b[3],E:0,Et:0,P:Math.random()*6,phi:0,verts:[]};
+    fig.pad=kind==='ripple'||kind==='flicker'?14:Math.max(10,Math.round(0.22*Math.max(fig.w,fig.h)));
+    if(kind==='rider')fig.phi=Math.atan2((fig.y0+fig.h/2-818)/118,(fig.x0+fig.w/2-1650)/430);
+    figs.push(fig);
+  }
+  // merge overlapping padded boxes into patches
+  let rects=figs.map(f=>({x0:f.x0-f.pad,y0:f.y0-f.pad,x1:f.x0+f.w+f.pad,y1:f.y0+f.h+f.pad,figs:[f]}));
+  for(let merged=true;merged;){merged=false;
+    for(let i=0;i<rects.length&&!merged;i++)for(let j=i+1;j<rects.length;j++){const a=rects[i],b=rects[j];
+      if(a.x0<b.x1&&b.x0<a.x1&&a.y0<b.y1&&b.y0<a.y1){a.x0=Math.min(a.x0,b.x0);a.y0=Math.min(a.y0,b.y0);a.x1=Math.max(a.x1,b.x1);a.y1=Math.max(a.y1,b.y1);a.figs.push(...b.figs);rects.splice(j,1);merged=true;break}}}
+  // a patch may not cross the fold between the standing backdrop and the ground: split it there
+  const parts=[];
+  for(const r of rects){
+    r.x0=Math.max(0,r.x0);r.y0=Math.max(0,r.y0);r.x1=Math.min(W,r.x1);r.y1=Math.min(H,r.y1);
+    if(r.y0<HZ&&r.y1>HZ){parts.push({...r,y1:HZ,back:true},{...r,y0:HZ,back:false})}else parts.push({...r,back:r.y1<=HZ})}
+  for(const r of parts)makePatch(r);
+}
+function makePatch(r){
+  const nx=Math.max(2,Math.ceil((r.x1-r.x0)/RIG_STEP)+1),ny=Math.max(2,Math.ceil((r.y1-r.y0)/RIG_STEP)+1),N=nx*ny;
+  const rest=new Float32Array(N*2),pos=new Float32Array(N*3),uv=new Float32Array(N*2),idx=[];
+  for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){const k=j*nx+i,x=r.x0+(r.x1-r.x0)*i/(nx-1),y=r.y0+(r.y1-r.y0)*j/(ny-1);rest[k*2]=x;rest[k*2+1]=y;uv[k*2]=x/W;uv[k*2+1]=1-y/H}
+  for(let j=0;j<ny-1;j++)for(let i=0;i<nx-1;i++){const a=j*nx+i,b=a+1,c=a+nx,d=c+1;idx.push(a,c,b,b,c,d)}
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.BufferAttribute(pos,3));geo.setAttribute('uv',new THREE.BufferAttribute(uv,2));geo.setIndex(idx);
+  const m=new THREE.Mesh(geo,paintMat);
+  const P_={m,geo,rest,pos,N,back:r.back,dx:new Float32Array(N),dy:new Float32Array(N),figs:[],touched:null};
+  if(r.back)backdrop.add(m);else scene.add(m);
+  // which vertices each figure may move, with their border weight
+  for(const f of r.figs){
+    const list=[];
+    for(let k=0;k<N;k++){const x=rest[k*2],y=rest[k*2+1];
+      const ex=Math.min(x-(f.x0-f.pad),f.x0+f.w+f.pad-x),ey=Math.min(y-(f.y0-f.pad),f.y0+f.h+f.pad-y);
+      if(ex<=0||ey<=0)continue;
+      const wb=sstep(0,f.pad,ex)*sstep(0,f.pad,ey);
+      // the outermost ring of the patch never moves
+      const i=k%(nx),j=(k/nx)|0;if(i===0||j===0||i===nx-1||j===ny-1)continue;
+      if(wb>0.001)list.push(k,wb)}
+    if(!list.length)continue;
+    const K=rigCoefs(f).length,n=list.length/2,ks=new Int32Array(n),fl=new Float32Array(n*K*2);
+    for(let q=0;q<n;q++){const k=list[q*2],wb=list[q*2+1];ks[q]=k;const A=rigFields(f,rest[k*2],rest[k*2+1]);for(let j=0;j<K*2;j++)fl[q*K*2+j]=A[j]*wb}
+    P_.figs.push({f,ks,fl,K});
+  }
+  const seen=new Set();for(const {ks} of P_.figs)for(const k of ks)seen.add(k);
+  P_.touched=Int32Array.from([...seen]).sort();
+  writePatch(P_,true);geo.computeBoundingSphere();
+  patches.push(P_);
+}
+function sstep(a,b,x){const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t)}
+function gau(u,v,cu,cv,ru,rv){const a=(u-cu)/ru,b=(v-cv)/rv;return Math.exp(-a*a-b*b)}
+function writePatch(p,all){
+  const {rest,pos,dx,dy,N,touched}=p,n=all?N:touched.length;
+  for(let q=0;q<n;q++){const k=all?q:touched[q];const x=rest[k*2]+dx[k],y=rest[k*2+1]+dy[k];
+    if(p.back){pos[k*3]=x-W/2;pos[k*3+1]=HZ/2-y;pos[k*3+2]=0.8}else{pos[k*3]=x;pos[k*3+1]=0.8;pos[k*3+2]=y}}
+  p.geo.attributes.position.needsUpdate=true;
+}
+// Each rig = a few fixed vector fields (computed once per vertex) times a few numbers that change with time.
+// Per frame only the numbers are recomputed, so thousands of vertices cost a handful of multiply-adds each.
+const RG={F:[],C:[]};
+function rF(px,py,x,y,g){const X=x-px,Y=y-py;RG.F.push(X*g,Y*g,-Y*g,X*g)}
+function rC(a){RG.C.push(Math.cos(a)-1,Math.sin(a))}
+function rigFields(f,x,y){
+  RG.F=[];const u=(x-f.x0)/f.w,v=(y-f.y0)/f.h,vc=Math.min(1,Math.max(0,v)),F=f.f,uf=F>0?u:1-u,h=f.h,w=f.w;
+  const fx=uu=>f.x0+(F>0?uu:1-uu)*w,fy=vv=>f.y0+vv*h,A=RG.F;
+  switch(f.kind){
+    case'giraffe':case'elephant':case'quad':{
+      const G=f.kind==='giraffe',hc=G?[.72,.22,.36,.34]:[.86,.33,.22,.3],hp=G?[.55,.58]:[.68,.45];
+      rF(fx(hp[0]),fy(hp[1]),x,y,gau(uf,v,hc[0],hc[1],hc[2],hc[3]));
+      const lw=sstep(0.6,1.0,v),side=sstep(0.35,0.65,uf);
+      A.push(F*0.07*h*(2*side-1)*lw,0, 0,-0.02*h*(1-lw)*gau(uf,v,.5,.45,.6,.5), 0,0.05*h*gau(uf,v,.03,.35,.12,.2));
+      if(f.kind==='elephant')rF(fx(.86),fy(.45),x,y,gau(uf,v,.95,.72,.1,.3));
+      break}
+    case'bird':{rF(fx(.6),fy(.5),x,y,gau(uf,v,.82,.3,.3,.35));const g=gau(u,v,.5,.6,.45,.4);A.push((x-fx(.5))*g,(y-fy(.6))*g, 0,0.06*h*gau(uf,v,.08,.75,.15,.2));break}
+    case'owl':{const g=gau(u,v,.5,.33,.45,.36);rF(fx(.5),fy(.78),x,y,g);A.push(0,-0.025*h*g);break}
+    case'fish':{const env=0.09*h*(0.25+(1-uf))*gau(0,v,0,.5,1,.65);A.push(0,Math.sin(6*uf)*env, 0,Math.cos(6*uf)*env, 0.02*w,0);break}
+    case'flyer':{const a=Math.pow(Math.abs(u-0.5)*2,1.6);A.push(0,0.22*h*a, 0,0.03*h, 0.03*w,0);break}
+    case'flock':{const p=u*14+v*7,q=v*11+u*5;A.push(0,0.07*h*Math.cos(p), 0,0.07*h*Math.sin(p), 0.03*w*Math.cos(q),0, 0.03*w*Math.sin(q),0);break}
+    case'rider':{rF(fx(.5),fy(1),x,y,1-sstep(.65,1,v));const lw=sstep(0.62,1.0,v),side=sstep(0.3,0.7,uf);
+      A.push(F*0.09*h*lw*Math.cos(1.6*side),0, F*0.09*h*lw*Math.sin(1.6*side),0, 0,-0.035*h*(1-lw));break}
+    case'sway':{const g=gau(u,v,.5,.55,.5,.45);A.push(0.07*h*(1-vc)*(1-vc),0, (x-fx(.5))*g,(y-fy(.55))*g);break}
+    case'gobble':{const g=gau(u,v,.5,.55,.5,.5);A.push(-(x-fx(.5))*0.05*g,(y-fy(.55))*0.09*g);rF(fx(.5),fy(.95),x,y,g);break}
+    case'knife':rF(fx(.6),fy(.55),x,y,gau(u,v,.78,.45,.25,.3));A.push(0,-0.03*h*gau(u,v,.4,.5,.4,.5));break;
+    case'skate':rF(fx(.5),fy(1),x,y,1-sstep(.7,1,v));break;
+    case'ripple':{const p=x*0.06+y*0.03,q=y*0.09;A.push(0,1.3*Math.cos(p), 0,1.3*Math.sin(p), 0.9*Math.cos(q),0, 0.9*Math.sin(q),0);break}
+    case'flicker':{const p=2*x*0.07,q=y*0.12;A.push(0,-1.1, 0,1.1*Math.cos(p), 0,1.1*Math.sin(p), 1.6*Math.cos(q),0, 1.6*Math.sin(q),0);break}
+  }
+  return RG.F;
+}
+function rigCoefs(f){
+  RG.C=[];const P=f.P,M=1+0.9*f.E,F=f.f,C=RG.C;
+  switch(f.kind){
+    case'giraffe':case'elephant':case'quad':{const G=f.kind==='giraffe';
+      rC(F*(G?.07:.11)*M*Math.sin(P*0.5));C.push(M*Math.sin(P),M*Math.abs(Math.cos(P)),M*Math.sin(P*1.7));
+      if(f.kind==='elephant')rC(F*0.22*M*Math.sin(P*0.6));break}
+    case'bird':{const pk=Math.pow(Math.max(0,Math.sin(P*2.3)),6);rC(F*(0.18*pk+0.05*Math.sin(P*1.3))*M);C.push(0.025*Math.sin(P*3)*M,M*Math.pow(Math.max(0,Math.sin(P*3.1)),4));break}
+    case'owl':rC(0.09*M*Math.sin(P*0.8));C.push(M*Math.abs(Math.sin(P*1.6)));break;
+    case'fish':C.push(M*Math.cos(P*3),-M*Math.sin(P*3),M*Math.sin(P*1.5));break;
+    case'flyer':C.push(M*Math.sin(P*5),Math.sin(P*5+1.5),M*Math.sin(P*0.7));break;
+    case'flock':C.push(M*Math.sin(P*4),M*Math.cos(P*4),M*Math.sin(P*3),M*Math.cos(P*3));break;
+    case'rider':{const a=P+f.phi;rC(0.06*M*Math.sin(a));C.push(M*Math.sin(a),M*Math.cos(a),M*Math.abs(Math.sin(a)));break}
+    case'sway':C.push(M*Math.sin(P),0.02*M*Math.sin(P*2.1));break;
+    case'gobble':C.push(M*Math.sin(P*1.6));rC(0.05*M*Math.sin(P*0.7));break;
+    case'knife':rC(0.08*M*Math.sin(P*1.1));C.push(M*Math.abs(Math.sin(P*2)));break;
+    case'skate':rC(0.12*M*Math.sin(P));break;
+    case'ripple':C.push(Math.sin(P*2),Math.cos(P*2),Math.sin(P*1.7),Math.cos(P*1.7));break;
+    case'flicker':C.push(1,Math.cos(P*6),-Math.sin(P*6),Math.sin(P*5),Math.cos(P*5));break;
+  }
+  return RG.C;
+}
+// push of one figure at a painting point (used by tests; the game uses the cached fields)
+const RD=[0,0];
+function rigAt(f,x,y){const A=rigFields(f,x,y).slice(),C=rigCoefs(f);RD[0]=0;RD[1]=0;for(let j=0;j<C.length;j++){RD[0]+=C[j]*A[j*2];RD[1]+=C[j]*A[j*2+1]}}
+const rigFrustum=new THREE.Frustum(),rigMat=new THREE.Matrix4(),rigSphere=new THREE.Sphere();
+let rigClock=0;
+function rigUpdate(dt){
+  for(const f of figs){f.E+=(f.Et-f.E)*Math.min(1,dt*2);f.P+=dt*(RIG_W[f.kind]||1)*(1+0.6*f.E)}
+  rigClock+=dt;if(rigClock<0.03)return;rigClock=0;
+  camera.updateMatrixWorld();rigMat.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);rigFrustum.setFromProjectionMatrix(rigMat);
+  for(const p of patches){
+    if(!p.geo.boundingSphere)continue;
+    rigSphere.copy(p.geo.boundingSphere).applyMatrix4(p.m.matrixWorld);
+    if(!rigFrustum.intersectsSphere(rigSphere))continue;
+    for(const k of p.touched){p.dx[k]=0;p.dy[k]=0}
+    const dx=p.dx,dy=p.dy;
+    for(const {f,ks,fl,K} of p.figs){const C=rigCoefs(f),n=ks.length;
+      for(let q=0;q<n;q++){let sx=0,sy=0,o=q*K*2;for(let j=0;j<K;j++,o+=2){sx+=C[j]*fl[o];sy+=C[j]*fl[o+1]}const k=ks[q];dx[k]+=sx;dy[k]+=sy}}
+    writePatch(p);
+  }
+}
+
+// ---------- standing cut-out figures (billboards around the vertical axis) ----------
+const creatures=[];
+const atlasMat=new THREE.MeshBasicMaterial({transparent:false,alphaTest:0.3,side:THREE.DoubleSide});
+function soundFor(n){
+  if(n==='fil')return'trumpet';
+  if(n.startsWith('baykus'))return'hoot';
+  if(n.startsWith('atli')||n==='antiloplar')return'hooves';
+  if(n.startsWith('ordek'))return'quack';
+  if(/balik|denizkizi|yuzucu/.test(n))return'bubbles';
+  if(n==='tekboynuz')return'chime';
+  if(n==='domuz'||n==='kirpi'||n==='zurafa')return'snort';
+  if(n==='ayi')return'growl';
+  if(n==='kulaklar')return'drum';
+  if(/prens|canavar|sovalye|tavsan|patenciler/.test(n))return'groan';
+  if(/kus|saka|ibibik|yalicapkini|grifon|ucan/.test(n))return'chirp';
+  return null;
+}
+fetch('anim.json').then(r=>r.ok?r.json():Promise.reject(r.status)).then(data=>{
+  try{buildRigs(data.p)}catch(e){showErr('canlandırma: '+e.message)}
+  texLoader.load('anim.webp',tex=>{
+    atlasMat.map=tex;atlasMat.needsUpdate=true;
+    data.p.forEach(p=>{
+      if(p.k==='water'||p.k==='fire')return;
+      const S=1.15,w=p.w*S,h=p.h*S;
+      const geo=new THREE.PlaneGeometry(w,h);geo.translate(0,h/2,0);
+      const u0=p.ax/data.aw,u1=(p.ax+p.w)/data.aw,v1=1-p.ay/data.ah,v0=1-(p.ay+p.h)/data.ah;
+      setUV(geo,(u,v)=>[u0+u*(u1-u0),v0+v*(v1-v0)]);
+      const m=new THREE.Mesh(geo,atlasMat);
+      const bottom=p.y+p.h,cx=p.x+p.w/2;
+      m.rotation.order='YXZ';scene.add(m);
+      // back: stands on the upright backdrop (sky part); otherwise stands on the painted ground
+      const c={m,base:new THREE.Vector3(cx,0,bottom-4),back:bottom<HZ+10,bottom,cx,k:p.k,n:p.n,snd:soundFor(p.n),cool:0,ph:Math.random()*6,gx:(p.x/700)%1,dead:actorLoaded.has(p.n)};
+      creatures.push(c);
+    });
+    poseWorld();renderOnce();
+  });
+}).catch(()=>{});
+loadActors();
+
+// ---------- the bird (a small goldfinch) ----------
+function lam(c){return new THREE.MeshLambertMaterial({color:c})}
+const bird=new THREE.Group();
+const body=new THREE.Mesh(new THREE.SphereGeometry(1,14,10),lam(0xc9a170));body.scale.set(7,6,11);bird.add(body);
+const belly=new THREE.Mesh(new THREE.SphereGeometry(1,12,8),lam(0xf1e4c8));belly.scale.set(6,4.5,9);belly.position.set(0,-2,0.5);bird.add(belly);
+const head=new THREE.Mesh(new THREE.SphereGeometry(5,14,10),lam(0xf3ead8));head.position.set(0,3,-10);bird.add(head);
+const face=new THREE.Mesh(new THREE.SphereGeometry(3.4,12,8),lam(0xc8202a));face.position.set(0,3,-13.4);bird.add(face);
+const beak=new THREE.Mesh(new THREE.ConeGeometry(1.6,6,8),lam(0xe7d2a6));beak.rotation.x=-Math.PI/2;beak.position.set(0,2.5,-18);bird.add(beak);
+const eyeMat=new THREE.MeshBasicMaterial({color:0x140c08});
+for(const sx of [-1,1]){const e=new THREE.Mesh(new THREE.SphereGeometry(0.9,8,6),eyeMat);e.position.set(sx*3.6,4.5,-12);bird.add(e)}
+const tail=new THREE.Mesh(new THREE.ConeGeometry(4,11,4),lam(0x2b2016));tail.rotation.x=Math.PI/2;tail.scale.set(1,1,0.35);tail.position.set(0,1,13);bird.add(tail);
+const wings=[];
+for(const sx of [-1,1]){
+  const piv=new THREE.Group();piv.position.set(sx*5,2,-1);
+  const wgt=new THREE.Mesh(new THREE.BoxGeometry(16,0.9,9),lam(0x1e1a14));wgt.position.set(sx*8,0,1);piv.add(wgt);
+  const stripe=new THREE.Mesh(new THREE.BoxGeometry(12,1.1,2.6),lam(0xf2cc33));stripe.position.set(sx*7,0.2,-1.2);piv.add(stripe);
+  bird.add(piv);wings.push({piv,sx});
+}
+scene.add(bird);
+function shadowDisc(r){const m=new THREE.Mesh(new THREE.CircleGeometry(r,20),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0.28,depthWrite:false}));m.rotation.x=-Math.PI/2;scene.add(m);return m}
+const birdShadow=shadowDisc(9);
+
+// glow texture for sparkles, rings and eyes
+function glowTex(){const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d');const gr=g.createRadialGradient(32,32,0,32,32,32);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.25,'rgba(255,240,200,.8)');gr.addColorStop(1,'rgba(255,220,150,0)');g.fillStyle=gr;g.fillRect(0,0,64,64);return new THREE.CanvasTexture(c)}
+const GLOW=glowTex();
+function glowSprite(color,size){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}));s.scale.set(size,size,1);return s}
+const sparkle=glowSprite(0xffe08a,60);sparkle.visible=false;scene.add(sparkle);
+const aura=glowSprite(0x8fb8ff,70);scene.add(aura);aura.visible=false;
+
+// particles (pooled)
+const PMAX=400,pPos=new Float32Array(PMAX*3),pCol=new Float32Array(PMAX*3);let pList=[];
+const pGeo=new THREE.BufferGeometry();pGeo.setAttribute('position',new THREE.BufferAttribute(pPos,3));pGeo.setAttribute('color',new THREE.BufferAttribute(pCol,3));
+const pts=new THREE.Points(pGeo,new THREE.PointsMaterial({size:7,vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,map:GLOW}));
+pts.frustumCulled=false;scene.add(pts);
+const tmpC=new THREE.Color();
+const rand=(a,b)=>a+Math.random()*(b-a);
+function emit(x,y,z,color,n,sp,opts={}){
+  tmpC.set(color);
+  for(let i=0;i<n&&pList.length<PMAX;i++){
+    const a=Math.random()*6.283,b=Math.random()*3.1416-1.57,v=sp*(0.35+Math.random()*0.65);
+    const life=opts.life||rand(.6,1.2);
+    pList.push({x,y,z,vx:Math.cos(a)*Math.cos(b)*v,vy:(opts.up||0)+Math.sin(b)*v,vz:Math.sin(a)*Math.cos(b)*v,life,max:life,r:tmpC.r,g:tmpC.g,b:tmpC.b,drag:opts.drag!=null?opts.drag:0.92});
+  }
+}
+
+// ---------- demons ----------
+const demonMat=new THREE.MeshLambertMaterial({color:0x2a120a});
+const wingMat=new THREE.MeshBasicMaterial({color:0x1c0c07,side:THREE.DoubleSide});
+const eyeGlow=new THREE.MeshBasicMaterial({color:0xff5a1e});
+function wingGeo(){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute([0,0,0, 34,10,-4, 26,-2,2, 0,0,0, 26,-2,2, 30,-12,6],3));g.computeVertexNormals();return g}
+const WG=wingGeo();
+const demons=[];
+function spawnPoint(roam){return roam?{x:rand(1000,3100),z:rand(560,1650)}:{x:rand(2520,3120),z:rand(560,1650)}}
+function makeDemon(roam){
+  const g=new THREE.Group();
+  const core=new THREE.Mesh(new THREE.IcosahedronGeometry(13,0),demonMat);g.add(core);
+  for(let i=0;i<6;i++){const sp=new THREE.Mesh(new THREE.ConeGeometry(3,10,4),demonMat);const a=i/6*6.283;sp.position.set(Math.cos(a)*11,Math.sin(a)*11,0);sp.rotation.z=a-Math.PI/2;g.add(sp)}
+  for(const sx of [-1,1]){const e=new THREE.Mesh(new THREE.SphereGeometry(2.2,8,6),eyeGlow);e.position.set(sx*4.5,3,-11);g.add(e)}
+  const eg=glowSprite(0xff4a10,26);eg.position.set(0,3,-12);g.add(eg);
+  const ws=[];for(const sx of [-1,1]){const w=new THREE.Mesh(WG,wingMat);w.scale.set(sx,1,1);w.position.set(sx*8,2,2);g.add(w);ws.push(w)}
+  const p=spawnPoint(roam);g.position.set(p.x,40,p.z);scene.add(g);
+  const d={g,ws,roam,shadow:shadowDisc(11),wx:p.x,wz:p.z,wt:0,ph:Math.random()*6,sp:rand(.92,1.08),chaseT:0,lostT:0};
+  demons.push(d);return d;
+}
+
+// ---------- state ----------
+const P={pos:new THREE.Vector3(470,70,1180),yaw:0,speed:120,vy:0,dashT:0,dashCd:0,inv:0,flap:0,knock:new THREE.Vector3()};
+let score=0,streak=0,lastFind=-99,escapes=0,elapsed=0,hitStop=0,focusT=0,focusOn=null,shake=0;
+const camPos=new THREE.Vector3(),camLook=new THREE.Vector3();
+// ov: 1 = bird's-eye (backdrop laid flat, the whole painting lies intact on the floor), 0 = inside (backdrop upright)
+let ov=1,ovT=1,topH=1000;
+function poseWorld(){
+  const a=ov*Math.PI/2,ca=Math.cos(a),sa=Math.sin(a);
+  backdrop.rotation.x=-a;backdrop.position.set(W/2,ca*HZ/2,HZ-sa*HZ/2);
+  for(const s of SECRETS)if(s.onBack){const h=HZ-s.y;s.pos.set(s.x,ca*h+sa*4,HZ-sa*h+ca*4)}
+  for(const c of creatures)if(c.back){const h=HZ-c.bottom;c.base.set(c.cx,ca*h+sa*8+ov*1.5,HZ-sa*h+ca*8)}
+}
+function setView(t){ovT=t;$('viewBtn').textContent=t?'İçine dal':'Kuş bakışı';if(state!=='play')renderOnce()}
+
+// ---------- input ----------
+const keys={};
+const isTouch=matchMedia('(pointer:coarse)').matches;
+if(isTouch)$('touchpad').hidden=false;
+addEventListener('keydown',e=>{
+  if(e.target&&e.target.tagName==='INPUT')return;
+  if(state==='story'){storyKey(e);return}
+  keys[e.code]=true;
+  if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();
+  if(e.code==='KeyE')dash();
+  if(e.code==='KeyB')toggleSheet('album');
+  if(e.code==='KeyT')toggleSheet('map');
+  if(e.code==='Escape'&&(state==='album'||state==='map'))closeSheets();
+  if(e.code==='KeyM')toggleMute();
+  if(e.code==='KeyV')setView(ovT?0:1);
+  if(e.code==='KeyH'&&state==='play')startStory(false);
+});
+addEventListener('keyup',e=>{keys[e.code]=false});
+const drag={on:false,id:null,x0:0,y0:0,x:0,y:0};
+cv.addEventListener('pointerdown',e=>{if(state!=='play')return;drag.on=true;drag.id=e.pointerId;drag.x0=drag.x=e.clientX;drag.y0=drag.y=e.clientY;try{cv.setPointerCapture(e.pointerId)}catch(_){}
+  if(isTouch){const s=$('stick');s.hidden=false;s.style.left=e.clientX+'px';s.style.top=e.clientY+'px';s.firstElementChild.style.transform=''}cv.style.cursor='grabbing'});
+cv.addEventListener('pointermove',e=>{if(!drag.on||e.pointerId!==drag.id)return;drag.x=e.clientX;drag.y=e.clientY;
+  if(isTouch){const dx=Math.max(-40,Math.min(40,drag.x-drag.x0)),dy=Math.max(-40,Math.min(40,drag.y-drag.y0));$('stick').firstElementChild.style.transform=`translate(${dx}px,${dy}px)`}});
+const endDrag=()=>{drag.on=false;$('stick').hidden=true;cv.style.cursor='grab'};
+cv.addEventListener('pointerup',endDrag);cv.addEventListener('pointercancel',endDrag);
+const hold={up:false,down:false};
+for(const [id,k] of [['upBtn','up'],['downBtn','down']]){const b=$(id);b.addEventListener('pointerdown',e=>{e.preventDefault();hold[k]=true});for(const ev of ['pointerup','pointercancel','pointerleave'])b.addEventListener(ev,()=>{hold[k]=false})}
+$('dashBtn').addEventListener('pointerdown',e=>{e.preventDefault();dash()});
+$('startBtn').addEventListener('click',start);
+$('albumBtn').addEventListener('click',()=>toggleSheet('album'));
+$('mapBtn').addEventListener('click',()=>toggleSheet('map'));
+$('albumClose').addEventListener('click',closeSheets);
+$('mapClose').addEventListener('click',closeSheets);
+$('muteBtn').addEventListener('click',toggleMute);
+$('viewBtn').addEventListener('click',()=>setView(ovT?0:1));
+cv.addEventListener('wheel',e=>{if(ov<0.5)return;e.preventDefault();topH=Math.max(300,Math.min(2300,topH*Math.exp(e.deltaY*0.0012)))},{passive:false});
+let resetArmed=false;
+$('resetBtn').addEventListener('click',()=>{
+  if(!resetArmed){resetArmed=true;$('resetMsg').textContent='Emin misin? Bütün bulduğun sırlar silinecek. Onaylamak için tekrar bas.';$('resetBtn').textContent='Evet, sıfırla';return}
+  found=new Set();saveFound();score=0;streak=0;escapes=0;resetArmed=false;$('resetBtn').textContent='Defteri sıfırla';$('resetMsg').textContent='Defter sıfırlandı.';renderAlbum();updateHUD();
+});
+
+// ---------- audio: the user's music + synthesized animal voices ----------
+const music=$('music');
+let AC=null,master=null,sfxBus=null,musicFilter=null,noiseBuf=null,muted=false,musicK=0;
+function initAudio(){
+  if(AC)return;
+  try{AC=new (window.AudioContext||window.webkitAudioContext)()}catch(e){AC=null;return}
+  master=AC.createGain();master.gain.value=muted?0:1;master.connect(AC.destination);
+  sfxBus=AC.createGain();sfxBus.gain.value=0.9;sfxBus.connect(master);
+  try{const src=AC.createMediaElementSource(music);musicFilter=AC.createBiquadFilter();musicFilter.type='lowpass';musicFilter.frequency.value=18000;
+    const mg=AC.createGain();mg.gain.value=0.5;src.connect(musicFilter);musicFilter.connect(mg);mg.connect(master)}catch(e){musicFilter=null;music.volume=0.5}
+  noiseBuf=AC.createBuffer(1,AC.sampleRate,AC.sampleRate);const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+}
+function startMusic(){music.muted=muted;const p=music.play();if(p&&p.catch)p.catch(()=>{})}
+function out(pan){if(AC.createStereoPanner){const p=AC.createStereoPanner();p.pan.value=Math.max(-1,Math.min(1,pan||0));p.connect(sfxBus);return p}return sfxBus}
+function env(g,t,a,peak,dur){g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(peak,t+a);g.gain.exponentialRampToValueAtTime(0.0001,t+dur)}
+function osc(type,f,t,dur,peak,dst,a=0.01){const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.setValueAtTime(f,t);env(g,t,a,peak,dur);o.connect(g);g.connect(dst);o.start(t);o.stop(t+dur+0.05);return o}
+function noise(t,dur,peak,dst,ftype,freq,q){const s=AC.createBufferSource();s.buffer=noiseBuf;const f=AC.createBiquadFilter();f.type=ftype;f.frequency.value=freq;f.Q.value=q||1;const g=AC.createGain();env(g,t,0.004,peak,dur);s.connect(f);f.connect(g);g.connect(dst);s.start(t,Math.random()*0.5);s.stop(t+dur+0.05)}
+const mtof=m=>440*Math.pow(2,(m-69)/12);
+const voices={
+  chirp(v,dst,t){const base=2600+Math.random()*1500;const n=3+(Math.random()*4|0);for(let i=0;i<n;i++){const o=osc('sine',base,t+i*0.09,0.08,0.22*v,dst,0.005);o.frequency.exponentialRampToValueAtTime(base*(1.25+Math.random()*0.3),t+i*0.09+0.06)}},
+  hoot(v,dst,t){[0,0.42,0.62].forEach((dt,i)=>{const f=i===0?390:350;const o=osc('sine',f,t+dt,i===0?0.38:0.3,0.32*v,dst,0.06);o.frequency.linearRampToValueAtTime(f*0.93,t+dt+0.3)})},
+  hooves(v,dst,t){[0,0.11,0.2,0.42,0.53,0.62,0.84,0.95,1.04].forEach(dt=>noise(t+dt,0.06,0.5*v,dst,'bandpass',420+Math.random()*120,3))},
+  quack(v,dst,t){[0,0.22].forEach(dt=>{const o=AC.createOscillator(),f=AC.createBiquadFilter(),g=AC.createGain();o.type='sawtooth';o.frequency.setValueAtTime(260,t+dt);o.frequency.linearRampToValueAtTime(200,t+dt+0.16);f.type='bandpass';f.Q.value=4;f.frequency.setValueAtTime(1300,t+dt);f.frequency.linearRampToValueAtTime(700,t+dt+0.16);env(g,t+dt,0.01,0.35*v,0.18);o.connect(f);f.connect(g);g.connect(dst);o.start(t+dt);o.stop(t+dt+0.25)})},
+  trumpet(v,dst,t){const o=AC.createOscillator(),o2=AC.createOscillator(),f=AC.createBiquadFilter(),g=AC.createGain(),lfo=AC.createOscillator(),lg=AC.createGain();o.type='sawtooth';o2.type='square';o.frequency.setValueAtTime(330,t);o.frequency.linearRampToValueAtTime(560,t+0.25);o.frequency.linearRampToValueAtTime(470,t+0.9);o2.frequency.setValueAtTime(331,t);o2.frequency.linearRampToValueAtTime(565,t+0.25);o2.frequency.linearRampToValueAtTime(468,t+0.9);lfo.frequency.value=7;lg.gain.value=14;lfo.connect(lg);lg.connect(o.frequency);lg.connect(o2.frequency);f.type='bandpass';f.frequency.value=1500;f.Q.value=1.4;env(g,t,0.08,0.28*v,1.0);o.connect(f);o2.connect(f);f.connect(g);g.connect(dst);[o,o2,lfo].forEach(x=>{x.start(t);x.stop(t+1.1)});noise(t,0.9,0.08*v,dst,'bandpass',2200,1)},
+  bubbles(v,dst,t){for(let i=0;i<6;i++){const tt=t+i*0.07+Math.random()*0.05,o=osc('sine',300+Math.random()*200,tt,0.07,0.2*v,dst,0.003);o.frequency.exponentialRampToValueAtTime(900+Math.random()*500,tt+0.06)}},
+  chime(v,dst,t){[1568,2093,2637].forEach((f,i)=>osc('sine',f,t+i*0.12,1.4,0.12*v,dst,0.005))},
+  snort(v,dst,t){noise(t,0.25,0.35*v,dst,'bandpass',700,1.5);osc('square',110,t,0.2,0.08*v,dst)},
+  growl(v,dst,t){const o=osc('sawtooth',85,t,1.0,0.25*v,dst,0.1);o.frequency.linearRampToValueAtTime(70,t+1);noise(t,1,0.12*v,dst,'lowpass',300,1)},
+  groan(v,dst,t){const o=AC.createOscillator(),f=AC.createBiquadFilter(),g=AC.createGain(),tr=AC.createOscillator(),tg=AC.createGain();o.type='sawtooth';o.frequency.setValueAtTime(95,t);o.frequency.linearRampToValueAtTime(62,t+1.4);f.type='lowpass';f.frequency.value=480;tr.frequency.value=9;tg.gain.value=0.12*v;tr.connect(tg);tg.connect(g.gain);env(g,t,0.15,0.3*v,1.5);o.connect(f);f.connect(g);g.connect(dst);o.start(t);o.stop(t+1.6);tr.start(t);tr.stop(t+1.6)},
+  drum(v,dst,t){[0,0.3,0.6,0.75].forEach(dt=>{const o=osc('sine',90,t+dt,0.25,0.4*v,dst,0.003);o.frequency.exponentialRampToValueAtTime(50,t+dt+0.2);noise(t+dt,0.05,0.15*v,dst,'highpass',1500,1)})},
+  screech(v,dst,t){const o=osc('sawtooth',900,t,0.5,0.12*v,dst,0.02);o.frequency.exponentialRampToValueAtTime(380,t+0.45);noise(t,0.4,0.1*v,dst,'bandpass',1800,2)},
+};
+function voice(name,v,pan){if(!AC||muted||!voices[name])return;try{voices[name](Math.max(0.05,Math.min(1,v)),out(pan),AC.currentTime+0.02)}catch(e){}}
+const sfx={
+  find(rar,n){if(!AC)return;const t=AC.currentTime,d=out(0),base=[62,67,74][rar]+Math.min(10,n);[0,4,7,12,16].forEach((s,i)=>osc(i<3?'triangle':'sine',mtof(base+s),t+i*0.07,1.1,0.12,d));if(rar===2){osc('sine',mtof(base+24),t+0.4,1.6,0.08,d);noise(t,0.6,0.05,d,'highpass',5000,1)}},
+  hit(){if(!AC)return;const t=AC.currentTime,d=out(0);osc('sawtooth',70,t,0.5,0.2,d);osc('square',55,t+0.05,0.6,0.12,d)},
+  escape(){if(!AC)return;const t=AC.currentTime,d=out(0);[67,71,74,79].forEach((m,i)=>osc('triangle',mtof(m),t+i*0.06,0.5,0.1,d))},
+  dash(){if(!AC)return;noise(AC.currentTime,0.25,0.14,out(0),'bandpass',1200,0.8)},
+  panel(){if(!AC)return;const t=AC.currentTime,d=out(0);[60,64,67,72,76,79,84].forEach((m,i)=>osc('triangle',mtof(m),t+i*0.1,1.6,0.1,d))}
+};
+function toggleMute(){muted=!muted;$('muteBtn').textContent='Ses: '+(muted?'kapalı':'açık');music.muted=muted;if(master)master.gain.setTargetAtTime(muted?0:1,AC.currentTime,0.05)}
+
+// ---------- HUD ----------
+const ui={found:$('found'),streak:$('streak'),escapes:$('escapes'),score:$('score')};
+function bump(el){el.classList.remove('bump');void el.offsetWidth;el.classList.add('bump')}
+function updateHUD(){ui.found.textContent=found.size+' / '+SECRETS.length;ui.streak.textContent=streak>1?'×'+streak:'–';ui.escapes.textContent=escapes;ui.score.textContent=score}
+let toastT=0;
+function toast(msg,bad){const t=$('toast');t.textContent=msg;t.classList.toggle('bad',!!bad);t.classList.add('show');toastT=performance.now()+1600;setTimeout(()=>{if(performance.now()>=toastT-30)t.classList.remove('show')},1650)}
+let cardT=0;
+function showCard(s){
+  cropStyle($('cardCrop'),s,innerWidth<560?92:132);
+  const r=$('cardRar');r.className='rar r'+s.rar;r.textContent=RAR_NAMES[s.rar]+' · '+PANEL_NAMES[s.p];
+  $('cardTitle').textContent=s.t;$('cardText').textContent=s.d;
+  $('card').classList.add('show');cardT=performance.now()+6500;
+  setTimeout(()=>{if(performance.now()>=cardT-30)$('card').classList.remove('show')},6600);
+}
+
+// ---------- game flow ----------
+function start(){
+  initAudio();if(AC&&AC.state==='suspended')AC.resume();startMusic();
+  $('startSheet').hidden=true;$('heat').hidden=false;
+  P.pos.set(470,70,1180);P.yaw=0;P.speed=120;P.vy=0;
+  score=found.size*10;streak=0;escapes=0;elapsed=0;
+  while(demons.length<3)makeDemon(false);
+  placeCamera(true);
+  state='play';updateHUD();
+  toast(found.size?'Tekrar hoş geldin':'Tabloya hoş geldin');
+  startLoop();
+}
+function toggleSheet(which){
+  if(state==='menu'||state==='story')return;
+  if(state===which){closeSheets();return}
+  $('albumSheet').hidden=which!=='album';$('mapSheet').hidden=which!=='map';
+  state=which;stopLoop();
+  if(which==='album')renderAlbum();
+  if(which==='map')renderMap();
+}
+function closeSheets(){$('albumSheet').hidden=true;$('mapSheet').hidden=true;resetArmed=false;$('resetBtn').textContent='Defteri sıfırla';$('resetMsg').textContent='';if(state==='album'||state==='map'){state='play';startLoop()}}
+function renderMap(){
+  const wrap=$('mapWrap');wrap.querySelectorAll('.dot,.me').forEach(n=>n.remove());
+  SECRETS.forEach(s=>{if(!found.has(s.id))return;const d=document.createElement('div');d.className='dot';d.title=s.t;d.style.left=(s.x/W*100)+'%';d.style.top=(s.y/H*100)+'%';wrap.appendChild(d)});
+  const me=document.createElement('div');me.className='me';me.style.left=(P.pos.x/W*100)+'%';
+  const imgY=ov<0.5&&P.pos.y>HZ*0.5&&P.pos.z<HZ+60?Math.max(0,HZ-P.pos.y):P.pos.z;me.style.top=(Math.min(H,imgY)/H*100)+'%';wrap.appendChild(me);
+}
+function renderAlbum(){
+  $('albumCount').textContent=found.size+' / '+SECRETS.length+' sır';
+  const counts=$('albumCounts');counts.textContent='';
+  PANEL_NAMES.forEach((n,i)=>{const all=SECRETS.filter(s=>s.p===i),got=all.filter(s=>found.has(s.id)).length;const sp=document.createElement('span');sp.textContent=n+' '+got+'/'+all.length;counts.appendChild(sp)});
+  const grid=$('albumGrid');grid.textContent='';$('albumDetail').textContent='';
+  PANEL_NAMES.forEach((pn,pi)=>{
+    const hd=document.createElement('div');hd.className='panelhead';hd.textContent=pn;grid.appendChild(hd);
+    SECRETS.filter(s=>s.p===pi).forEach(s=>{
+      const got=found.has(s.id);
+      const b=document.createElement(got?'button':'div');b.className='slot r'+s.rar+(got?' got':' unk');if(got)b.type='button';
+      const c=document.createElement('div');c.className='crop';if(got)cropStyle(c,s,96);else c.textContent='?';
+      const nm=document.createElement('div');nm.className='nm';nm.textContent=got?s.t:RAR_NAMES[s.rar]+' sır';
+      b.append(c,nm);
+      if(got)b.addEventListener('click',()=>{
+        const det=$('albumDetail');det.textContent='';const box=document.createElement('div');box.className='detail';
+        const cc=document.createElement('div');cc.className='crop';cropStyle(cc,s,160);
+        const tx=document.createElement('div');const r=document.createElement('div');r.className='rar r'+s.rar;r.textContent=RAR_NAMES[s.rar]+' · '+PANEL_NAMES[s.p];
+        const h=document.createElement('h3');h.textContent=s.t;const p=document.createElement('p');p.style.margin='0';p.textContent=s.d;tx.append(r,h,p);box.append(cc,tx);det.appendChild(box);
+        try{det.scrollIntoView({block:'nearest'})}catch(e){}
+      });
+      grid.appendChild(b);
+    });
+  });
+  prepPostForm();
+}
+function dash(){if(state!=='play'||P.dashT>0||P.dashCd>0)return;P.dashT=0.45;P.dashCd=1.6;sfx.dash();emit(P.pos.x,P.pos.y,P.pos.z,'#f6e7b0',18,60,{life:0.5})}
+
+function discover(s){
+  if(found.has(s.id))return;
+  found.add(s.id);saveFound();
+  streak=elapsed-lastFind<30?streak+1:1;lastFind=elapsed;
+  const pts=10*(1+s.rar)+(streak>1?5*(streak-1):0);score+=pts;
+  hitStop=0.22;focusOn=s;focusT=1.5;
+  emit(s.pos.x,s.pos.y+10,s.pos.z,s.rar===2?'#ffcf5a':s.rar===1?'#9cc8ff':'#ffe9b0',70,140,{life:1.3,up:30});
+  $('flash').style.opacity=1;setTimeout(()=>{$('flash').style.opacity=0},180);
+  sfx.find(s.rar,streak);
+  showCard(s);
+  toast((streak>1?'Seri ×'+streak+'  ':'')+'+'+pts);
+  updateHUD();bump(ui.found);bump(ui.score);if(streak>1)bump(ui.streak);
+  const pAll=SECRETS.filter(x=>x.p===s.p);
+  if(pAll.every(x=>found.has(x.id))){setTimeout(()=>{toast(PANEL_NAMES[s.p]+' tamamlandı!');sfx.panel();score+=50;updateHUD();bump(ui.score)},1700)}
+  if(found.size===SECRETS.length)setTimeout(()=>{toast('Bütün sırlar bulundu!');sfx.panel()},3400);
+  // the garden gets more dangerous as you learn its secrets
+  const want=Math.min(9,3+Math.floor(found.size/4));
+  while(demons.length<want)makeDemon(found.size>=10&&demons.length%2===1);
+}
+
+function idleOff(c){
+  const t=elapsed+c.ph;let y=0,rz=0,x=0;
+  if(c.k==='bob')y=Math.sin(t*2.6)*2.5;
+  else if(c.k==='sway')rz=Math.sin(t*1.8)*0.04;
+  else if(c.k==='gallop')y=Math.abs(Math.sin((elapsed*1.6+c.gx)*Math.PI*2))*6;
+  else if(c.k==='fly'){y=Math.sin(t*1.5)*8;x=Math.sin(t*0.7)*10}
+  else if(c.k==='swim'){x=Math.sin(t*1.2)*5;rz=Math.sin(t*1.2)*0.04}
+  return [x,y,rz];
+}
+function poseCreature(c,x,y,rz,z=0,sc=1){
+  if(c.dead){c.m.visible=false;return}
+  const lean=ov*Math.PI/2*0.96;
+  c.m.scale.setScalar((1-ov*(1-1/1.15))*sc);   // exactly painted size when lying on its own spot
+  c.m.position.set(c.base.x+x,c.base.y+y*(1-ov*0.6)+ov*1.5,c.base.z+z+(c.back?0:4*ov));
+  const yaw=Math.atan2(camera.position.x-c.m.position.x,camera.position.z-c.m.position.z)*(1-ov);
+  c.m.rotation.set(-lean,yaw,rz||0);
+  if(ov>0.5)c.m.visible=false;   // from above the painting itself moves (see rigs); cards only stand up inside
+}
+// ---------- update ----------
+const fwd=new THREE.Vector3(),tmp=new THREE.Vector3();
+let soundClock=0,nearestD=1e9,nearest=null,heatShown=-1;
+function update(dt){
+  elapsed+=dt;
+  if(ov!==ovT){ov+=Math.sign(ovT-ov)*Math.min(Math.abs(ovT-ov),dt*1.1);poseWorld()}
+  let turn=(keys.KeyA||keys.ArrowLeft?1:0)-(keys.KeyD||keys.ArrowRight?1:0);
+  let climb=(keys.Space||hold.up?1:0)-(keys.ShiftLeft||keys.ShiftRight||hold.down?1:0);
+  const thr=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0);
+  if(drag.on){
+    const dx=(drag.x-drag.x0)/(isTouch?45:140),dy=(drag.y-drag.y0)/(isTouch?45:140);
+    turn-=Math.max(-1,Math.min(1,dx));climb-=Math.max(-1,Math.min(1,dy));
+  }
+  turn=Math.max(-1,Math.min(1,turn));climb=Math.max(-1,Math.min(1,climb));
+  P.yaw+=turn*1.9*dt;
+  const target=(thr>0?230:thr<0?45:120)*(P.dashT>0?2.6:1);
+  P.speed+=(target-P.speed)*Math.min(1,dt*(P.dashT>0?8:2.5));
+  P.vy+=(climb*110-P.vy)*Math.min(1,dt*4);
+  fwd.set(-Math.sin(P.yaw),0,-Math.cos(P.yaw));
+  P.pos.addScaledVector(fwd,P.speed*dt);P.pos.y+=P.vy*dt;
+  P.pos.addScaledVector(P.knock,dt);P.knock.multiplyScalar(Math.pow(0.04,dt));
+  P.pos.x=Math.max(30,Math.min(W-30,P.pos.x));P.pos.z=Math.max(ov>0.5?20:HZ+26,Math.min(H+40,P.pos.z));
+  P.pos.y=Math.max(10,Math.min(HZ+80,P.pos.y));
+  P.dashT=Math.max(0,P.dashT-dt);P.dashCd=Math.max(0,P.dashCd-dt);P.inv=Math.max(0,P.inv-dt);
+  P.flap+=dt*(9+P.speed/25+(climb>0?8:0));
+  bird.position.copy(P.pos);bird.rotation.set(0,P.yaw,0);
+  bird.rotateZ(turn*0.45);bird.rotateX(Math.max(-0.5,Math.min(0.5,P.vy/220)));
+  const f=Math.sin(P.flap)*(P.dashT>0?0.3:0.75);
+  for(const w of wings)w.piv.rotation.z=w.sx*f;
+  bird.visible=!(P.inv>0&&Math.floor(P.inv*12)%2);
+  birdShadow.position.set(P.pos.x,0.6,P.pos.z);birdShadow.scale.setScalar(Math.max(0.4,1.4-P.pos.y/300));
+
+  // secrets: hot/cold
+  nearest=null;nearestD=1e9;
+  for(const s of SECRETS){if(found.has(s.id))continue;
+    const dx=s.pos.x-P.pos.x,dz=s.pos.z-P.pos.z,dy=s.onBack&&ov<0.5?s.pos.y-P.pos.y:Math.max(0,P.pos.y-120);
+    const d=Math.sqrt(dx*dx+dz*dz+dy*dy);if(d<nearestD){nearestD=d;nearest=s}}
+  const heat=nearest?Math.max(0,1-nearestD/750):0;
+  const hq=Math.round(heat*20)/20;
+  if(hq!==heatShown){heatShown=hq;$('heatFill').style.width=(hq*100)+'%';
+    $('heatTxt').textContent=!nearest?'bütün sırlar bulundu':hq>0.85?'çok sıcak!':hq>0.6?'sıcak':hq>0.3?'ılık':hq>0?'serin':'soğuk'}
+  aura.visible=heat>0.05;
+  if(aura.visible){aura.position.copy(P.pos);const pulse=1+Math.sin(elapsed*(4+heat*14))*0.15*heat;aura.scale.setScalar((40+heat*50)*pulse);aura.material.color.setHSL(0.6-0.5*heat,0.9,0.6);aura.material.opacity=0.25+heat*0.45}
+  if(nearest&&nearestD<280){sparkle.visible=true;sparkle.position.copy(nearest.pos);sparkle.position.y+=8;const k=1-nearestD/280;sparkle.scale.setScalar(30+k*70+Math.sin(elapsed*10)*10);sparkle.material.opacity=0.3+k*0.7;
+    if(Math.random()<dt*10*k)emit(nearest.pos.x+rand(-14,14),nearest.pos.y+rand(0,20),nearest.pos.z+rand(-14,14),'#ffe08a',1,25,{life:0.9,up:30,drag:0.98})}
+  else sparkle.visible=false;
+  if(nearest&&nearestD<78)discover(nearest);
+
+  // demons
+  const inHell=P.pos.x>2470;
+  for(const d of demons){
+    d.ph+=dt*7;
+    const dist=d.g.position.distanceTo(P.pos);
+    const chasing=(d.roam?dist<460:inHell&&dist<560)&&P.pos.x>760;
+    let tx,ty,tz,spd;
+    if(chasing){
+      if(d.chaseT===0)voice('screech',0.7,(d.g.position.x-P.pos.x)/300);
+      tx=P.pos.x;ty=P.pos.y;tz=P.pos.z;spd=(175+found.size*2.5)*d.sp;d.chaseT+=dt;d.lostT=0;
+    } else {
+      if(d.chaseT>0){d.lostT+=dt;if(d.lostT>0.6){if(d.chaseT>2.5){escapes++;score+=5;toast('Kaçtın! +5');sfx.escape();updateHUD();bump(ui.escapes);bump(ui.score)}d.chaseT=0;d.lostT=0}}
+      d.wt-=dt;if(d.wt<=0||Math.hypot(d.g.position.x-d.wx,d.g.position.z-d.wz)<40){d.wt=rand(2,5);const q=spawnPoint(d.roam);d.wx=q.x;d.wz=q.z}
+      tx=d.wx;tz=d.wz;ty=40+Math.sin(d.ph*0.3)*20;spd=70*d.sp;
+    }
+    tmp.set(tx-d.g.position.x,ty-d.g.position.y,tz-d.g.position.z);const l=tmp.length()||1;
+    d.g.position.addScaledVector(tmp,Math.min(spd*dt,l)/l);
+    const minX=d.roam?760:2480;if(d.g.position.x<minX)d.g.position.x=minX;
+    d.g.position.z=Math.max(ov>0.5?20:HZ+20,Math.min(H,d.g.position.z));d.g.position.y=Math.max(14,d.g.position.y);
+    d.g.lookAt(P.pos.x,d.g.position.y,P.pos.z);d.g.rotateY(Math.PI);
+    for(let i=0;i<2;i++)d.ws[i].rotation.y=(i?-1:1)*Math.sin(d.ph*1.6)*0.6;
+    d.shadow.position.set(d.g.position.x,0.5,d.g.position.z);
+    if(P.inv<=0&&dist<30){
+      P.inv=2;sfx.hit();shake=0.5;streak=0;updateHUD();
+      tmp.copy(P.pos).sub(d.g.position).setY(0);if(tmp.lengthSq()<1)tmp.set(-1,0,0);tmp.normalize();P.knock.copy(tmp.multiplyScalar(650));P.knock.x-=250;
+      $('hurt').style.opacity=1;setTimeout(()=>{$('hurt').style.opacity=0},300);
+      toast('Yakalandın! Seri bozuldu',true);
+      emit(P.pos.x,P.pos.y,P.pos.z,'#ff5a2b',30,120,{life:0.7});
+      d.chaseT=0;d.lostT=0;
+    }
+  }
+
+  // creatures: small lives, plus their voices when you pass close
+  soundClock+=dt;const doSound=soundClock>0.3;if(doSound)soundClock=0;let spoke=false;
+  for(const c of creatures){
+    if(c.dead){c.m.visible=false;continue}
+    const dx=c.base.x-P.pos.x,dz=c.base.z-P.pos.z,d2=dx*dx+dz*dz;
+    if(ov<0.5&&d2>900*900){c.m.visible=d2<2400*2400;continue}
+    c.m.visible=true;const q=idleOff(c);
+    poseCreature(c,q[0],q[1],q[2]);
+    if(doSound&&!spoke&&c.snd&&c.cool<elapsed){const d=Math.sqrt(d2+(c.base.y-P.pos.y)**2);if(d<230){voice(c.snd,1-d/260,-dx/300);c.cool=elapsed+10+Math.random()*5;spoke=true}}
+  }
+
+  rigUpdate(dt);actorsUpdate(dt,false);actorSecrets();
+  // embers rising over hell
+  if(inHell&&Math.random()<dt*25)emit(P.pos.x+rand(-500,500),rand(0,20),P.pos.z+rand(-600,100),Math.random()<.5?'#ff8a3a':'#ffcf6a',1,8,{life:rand(2,4),up:40,drag:1});
+
+  mood(P.pos.x,dt);
+}
+function mood(x,dt){
+  // zone mood: sky, fog and music colour follow where you are
+  const u=x/W;
+  const hellK=Math.max(0,Math.min(1,(u-0.74)/0.06)),edenK=Math.max(0,Math.min(1,(0.26-u)/0.05));
+  tmpC.copy(SKY_GARDEN).lerp(SKY_EDEN,edenK).lerp(SKY_HELL,hellK);
+  scene.background.lerp(tmpC,Math.min(1,dt*2));scene.fog.color.copy(scene.background);
+  scene.fog.near=700-hellK*400+ov*4000;scene.fog.far=2300-hellK*900+ov*6000;
+  if(musicFilter&&Math.abs(musicK-hellK)>0.2){musicK=hellK;musicFilter.frequency.setTargetAtTime(hellK>0.5?750:18000,AC.currentTime,0.6)}
+}
+
+function updateParticles(dt){
+  pList=pList.filter(p=>{p.life-=dt;if(p.life<=0)return false;p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;p.vx*=p.drag;p.vz*=p.drag;p.vy*=p.drag;return true});
+  let n=0;
+  for(const p of pList){const a=Math.min(1,p.life/p.max*1.5);pPos[n*3]=p.x;pPos[n*3+1]=p.y;pPos[n*3+2]=p.z;pCol[n*3]=p.r*a;pCol[n*3+1]=p.g*a;pCol[n*3+2]=p.b*a;n++}
+  pGeo.setDrawRange(0,n);pGeo.attributes.position.needsUpdate=true;pGeo.attributes.color.needsUpdate=true;
+}
+
+// camera: chase cam behind the bird; swoops toward a discovered secret for a moment
+const lookV=new THREE.Vector3(),focusCam=new THREE.Vector3();
+function placeCamera(snap,dt=0.016){
+  fwd.set(-Math.sin(P.yaw),0,-Math.cos(P.yaw));
+  tmp.copy(P.pos).addScaledVector(fwd,-78);tmp.y=Math.max(12,P.pos.y+30);tmp.z=Math.min(H+260,tmp.z);
+  lookV.copy(P.pos).addScaledVector(fwd,60);lookV.y=P.pos.y+4;
+  if(ov>0){const k=ov*ov*(3-2*ov);focusCam.set(P.pos.x,P.pos.y+topH,P.pos.z+topH*0.4);tmp.lerp(focusCam,k);focusCam.set(P.pos.x,0,P.pos.z-topH*0.02);lookV.lerp(focusCam,k)}
+  if(focusT>0&&focusOn){const k=Math.min(1,focusT/0.4)*(ov>0.5?0.35:0.75);lookV.lerp(focusOn.pos,k);focusCam.set(focusOn.pos.x,focusOn.pos.y+50,focusOn.pos.z+110);tmp.lerp(focusCam,k*0.6)}
+  if(snap){camPos.copy(tmp);camLook.copy(lookV)}
+  else{camPos.lerp(tmp,Math.min(1,dt*5));camLook.lerp(lookV,Math.min(1,dt*7))}
+  camera.position.copy(camPos);
+  if(shake>0){camera.position.x+=rand(-1,1)*shake*12;camera.position.y+=rand(-1,1)*shake*12}
+  camera.lookAt(camLook);
+}
+
+// ---------- story tour: the triptych read left to right, scene by scene, brought to life ----------
+// Each chapter: where to look (painting coords), how much to show (r), its text, and which cut-out
+// figures peel off the canvas and act (re = name pattern, a = act). Everything moves by code.
+const STORY=[
+ {p:-1,whole:true,dur:10,t:'Kapaklar açılıyor',d:"Tablo kapalıyken dış kanatlarda gri bir dünya görünür: yaratılışın üçüncü günü, cam bir kürenin içinde henüz insansız bir dünya. Kapaklar açılınca hikâye soldan sağa akar: yaratılış, zevk, ceza."},
+ {p:0,x:445,z:1080,r:240,dur:9,fx:'gold',glow:[444,1090],t:'Başlangıç: Adem ile Havva',d:"Her şey sol alt köşede başlar. Tanrı, yeni uyanan Adem'e Havva'yı tanıtıyor. Bütün tablonun ilk ve en sessiz anı bu el tutuşması.",snd:['chime']},
+ {p:0,x:430,z:800,r:230,dur:9,fx:'fountain',t:'Hayat Çeşmesi',d:"Cennetin ortasında pembe bir çeşme yükselir; su ondan bütün bahçeye dağılır. Gövdesindeki delikten bir baykuş bakıyor: cennette bile gözetleyen biri var.",snd:['hoot','bubbles']},
+ {p:0,x:400,z:560,r:300,dur:10,t:'İlk hayvanlar',d:"Fil, zürafa, tek boynuzlu at, ayı. Bosch bu hayvanların çoğunu hiç görmedi; gezginlerin anlattıklarından çizdi. Burada henüz kimse kimseyi yemiyor... çoğunlukla.",
+  acts:[[/^zurafa$/,'sway'],[/^fil$/,'walk'],[/^tekboynuz$/,'drink'],[/^antiloplar$/,'run'],[/^(ayi|domuz|kirpi)$/,'hop']],snd:['trumpet','chime','snort']},
+ {p:0,x:240,z:300,r:230,dur:9,t:'Yüzlü kaya, kuş sürüsü',d:"Sol üstteki turuncu kayaya dikkatle bak: içinde yüzler saklı. Bir mağaradan kuşlar sürü hâlinde göğe yükseliyor.",
+  acts:[[/^gokkuslari$/,'loop'],[/^beyazkuslar$/,'flap']],snd:['chirp','chirp']},
+ {p:1,x:1640,z:770,r:480,dur:12,t:'Arzunun halkası',d:"Orta panele geçtik: aynı manzara, ama artık çıplak insanlarla dolu. Erkekler at, deve ve domuz sırtında Gençlik Havuzu'nun çevresinde dönüp duruyor. Havuzda yalnızca kadınlar var.",
+  acts:[[/^atli/,'lap']],snd:['hooves','hooves','hooves']},
+ {p:1,x:1060,z:1000,r:250,dur:9,t:'Dev kuşlar',d:"Bahçenin sol yakasında kuşlar insanlardan büyük: saka kuşu, yalıçapkını, ağaçkakan, baykuş. İnsanlar onlardan meyve alıp besleniyor.",
+  acts:[[/^(saka|yalicapkini|ibibik)$/,'flap'],[/^baykus1$/,'gobble'],[/^ordek3$/,'swim']],snd:['chirp','hoot','quack']},
+ {p:1,x:1300,z:1290,r:270,dur:9,fx:'petal',t:'Çabuk geçen zevkler',d:"Dev çilekler, böğürtlenler, cam bir kürenin içinde sarılan âşıklar. Flaman atasözü der ki: mutluluk cam gibidir, çabuk kırılır.",
+  acts:[[/^buyukbalik$/,'swim'],[/^baskakus$/,'flap']],snd:['bubbles']},
+ {p:1,x:1600,z:330,r:520,dur:10,t:'Göğe yükselenler',d:"Arka planda gölün ortasında çatlak mavi bir küre ve pembe kuleler. Gökyüzünde biri grifona binmiş uçuyor, uzakta bir balık süzülüyor. Bu bahçede hiçbir şey yerinde durmuyor.",
+  acts:[[/^(grifon|ucan2)$/,'loop'],[/^denizkizi2$/,'swim']],snd:['chirp','bubbles']},
+ {p:1,x:1990,z:1090,r:300,dur:9,t:'Bahçenin kıyısı',d:"Orta panelin sağ kenarı. Kırmızı çatallı bir kule, kalabalığın içinde sessiz bir baykuş. Birkaç adım sonra ışık sönüyor.",
+  acts:[[/^baykus2$/,'gobble'],[/^balik$/,'swim']],snd:['hoot']},
+ {p:2,x:2790,z:290,r:320,dur:10,fx:'ember',demons:true,t:'Cehennem: yanan şehir',d:"Sağ panelde gün bitmiş. Karanlıkta bir şehir yanıyor, alevlerin önünde siluetler kaçışıyor. Bahçenin renkleri burada yok.",snd:['screech']},
+ {p:2,x:2740,z:590,r:250,dur:9,fx:'ember',t:'Kulaklar ve Ağaç-Adam',d:"Bir bıçakla delinmiş iki dev kulak, bir savaş arabası gibi altındakileri ezerek ilerliyor. Yanında gövdesi kırık bir yumurta olan Ağaç-Adam; yüzünün Bosch'un kendisi olduğu söylenir.",
+  acts:[[/^kulaklar$/,'roll']],snd:['drum','drum']},
+ {p:2,x:2810,z:1030,r:270,dur:9,t:'Müzik cehennemi',d:"Bahçede zevk veren müzik burada işkenceye dönüşüyor: bir adam arpın tellerine gerilmiş, insanlar dev çalgıların içinde. Üstte donmuş gölde patenciler kayıyor.",
+  acts:[[/^patenci/,'skate']],snd:['groan']},
+ {p:2,x:2890,z:1260,r:300,dur:10,demons:true,fx:'ember',t:'Cehennem Prensi',d:"Kuş başlı canavar yüksek tahtında oturuyor, günahkârları yutup aşağı bırakıyor. Önünde boynuz üfleyen bir tavşan: avcı ile av yer değiştirmiş.",
+  acts:[[/^prens$/,'gobble'],[/^tavsan$/,'hop'],[/^canavar$/,'walk']],snd:['groan','groan']},
+ {p:2,x:2990,z:1540,r:210,dur:9,t:'Son köşe: rahibe domuz',d:"Hikâye sağ alt köşede biter. Rahibe başlığı takmış bir domuz, bir adama belge imzalatmaya çalışıyor. Sol alttaki sessiz el tutuşmasından buraya geldik.",
+  acts:[[/^sovalye$/,'walk']],snd:['snort']},
+ {p:-1,whole:true,dur:0,end:true,t:'Baştan sona',d:"Soldan sağa okudun: yaratılış, zevk, ceza. Şimdi tabloya kendin gir; 34 sır hâlâ saklı."},
+];
+const ROMAN=['I · Cennet','II · Bahçe','III · Cehennem'];
+const S={i:0,t:0,trav:0,paused:false,fromMenu:false,cur:{x:W/2,z:H/2,h:1500},a:{x:W/2,z:H/2,h:1500},b:null,said:0,ba:0,bp:new THREE.Vector3(),txtTimer:0};
+const T31=Math.tan(31*Math.PI/180);
+function chapCam(ch){
+  const asp=camera.aspect||1.6;
+  if(ch.whole)return{x:W/2,z:H/2,h:Math.max(H/2/T31,W/2/(T31*asp))*1.22,whole:1};
+  return{x:ch.x,z:ch.z,h:Math.max(ch.r/T31,ch.r/(T31*asp))*1.15};
+}
+function storyBar(){
+  const bar=$('stBar');if(bar.children&&bar.children.length===STORY.length)return;
+  bar.textContent='';for(let i=0;i<STORY.length;i++){const s=document.createElement('i');s.appendChild(document.createElement('b'));bar.appendChild(s)}
+}
+function storyText(){
+  const ch=STORY[S.i],box=$('stTxt');
+  box.classList.add('fade');clearTimeout(S.txtTimer);
+  S.txtTimer=setTimeout(()=>{
+    const pn=$('stPanel');pn.className=ch.p>=0?'p'+ch.p:'';pn.textContent=ch.p>=0?ROMAN[ch.p]:'Triptik';
+    $('stNum').textContent=(S.i+1)+' / '+STORY.length;
+    $('stTitle').textContent=ch.t;$('stText').textContent=ch.d;box.classList.remove('fade');
+  },320);
+  $('stPrev').disabled=S.i===0;
+  $('stNext').textContent=ch.end?'Baştan izle':'İleri ▶';
+  $('stPause').hidden=!!ch.end;
+}
+function storyGo(i){
+  i=Math.max(0,Math.min(STORY.length-1,i));
+  S.a={x:S.cur.x,z:S.cur.z,h:S.cur.h};S.b=chapCam(STORY[i]);
+  const dist=Math.hypot(S.b.x-S.a.x,S.b.z-S.a.z);
+  S.trav=dist<5&&Math.abs(S.b.h-S.a.h)<5?0:Math.max(1.8,Math.min(3.6,1.4+dist/1100));
+  S.i=i;S.t=0;S.said=0;
+  for(const f of figs)f.Et=0;for(const A of actors)A.Et=0;
+  for(const [re] of STORY[i].acts||[]){for(const f of figs)if(re.test(f.n))f.Et=1;for(const A of actors)if(re.test(A.n))A.Et=1}
+  sparkle.visible=false;
+  storyText();
+}
+function startStory(fromMenu){
+  if(!ready||state==='story')return;
+  initAudio();if(AC&&AC.state==='suspended')AC.resume();startMusic();
+  $('startSheet').hidden=true;$('heat').hidden=true;$('card').classList.remove('show');
+  document.body.classList.add('story');$('story').hidden=false;
+  S.fromMenu=fromMenu;S.paused=false;$('stPause').textContent='Duraklat';
+  ov=ovT=1;poseWorld();$('viewBtn').textContent='İçine dal';
+  while(demons.length<3)makeDemon(false);
+  bird.scale.setScalar(2.4);aura.visible=false;
+  storyBar();S.cur=chapCam(STORY[0]);storyGo(0);
+  S.bp.set(W/2,90,H/2);
+  state='story';startLoop();
+}
+function endStory(){
+  if(state!=='story')return;
+  document.body.classList.remove('story');$('story').hidden=true;clearTimeout(S.txtTimer);
+  bird.scale.setScalar(1);sparkle.visible=false;
+  for(const f of figs)f.Et=0;for(const A of actors)A.Et=0;
+  for(const d of demons){d.g.visible=true;d.shadow.visible=true}
+  if(S.fromMenu){state='menu';start()}
+  else{state='play';$('heat').hidden=false;placeCamera(true);startLoop()}
+}
+function storyPause(){if(STORY[S.i].end)return;S.paused=!S.paused;$('stPause').textContent=S.paused?'Devam':'Duraklat'}
+function storyNext(){if(STORY[S.i].end){storyGo(0);return}storyGo(S.i+1)}
+function storyKey(e){
+  if(['Space','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.code))e.preventDefault();
+  if(e.code==='ArrowRight')storyNext();
+  else if(e.code==='ArrowLeft')storyGo(S.i-1);
+  else if(e.code==='Space')storyPause();
+  else if(e.code==='Escape')endStory();
+  else if(e.code==='KeyM'){toggleMute();$('stMute').textContent='Ses: '+(muted?'kapalı':'açık')}
+}
+$('storyBtn').addEventListener('click',()=>startStory(true));
+$('storyHudBtn').addEventListener('click',()=>startStory(false));
+$('stPrev').addEventListener('click',()=>storyGo(S.i-1));
+$('stNext').addEventListener('click',storyNext);
+$('stPause').addEventListener('click',storyPause);
+$('stExit').addEventListener('click',endStory);
+$('stMute').addEventListener('click',()=>{toggleMute();$('stMute').textContent='Ses: '+(muted?'kapalı':'açık')});
+
+const birdPrev=new THREE.Vector3();
+function storyUpdate(dt){
+  const ch=STORY[S.i];
+  if(!S.paused){S.t+=dt;elapsed+=dt}
+  // camera: glide from the last frame to this chapter's, rising a little mid-flight
+  const k0=S.trav>0?Math.min(1,S.t/S.trav):1,k=k0*k0*(3-2*k0);
+  const dist=Math.hypot(S.b.x-S.a.x,S.b.z-S.a.z);
+  S.cur.x=S.a.x+(S.b.x-S.a.x)*k;S.cur.z=S.a.z+(S.b.z-S.a.z)*k;
+  S.cur.h=S.a.h+(S.b.h-S.a.h)*k+Math.sin(Math.PI*k)*Math.min(700,dist*0.3);
+  const whole=ch.whole&&k0>=1,h=S.cur.h,lookZ=S.cur.z+h*(whole?0.09:0.12);
+  camera.position.set(S.cur.x+Math.sin(elapsed*0.21)*h*0.01,h,lookZ+h*(whole?0.001:0.16));
+  camera.lookAt(S.cur.x,0,lookZ);
+  scene.fog.near=h+4000;scene.fog.far=h+8000;
+  mood(S.cur.x,dt);scene.fog.near=h+4000;scene.fog.far=h+8000;
+  const at=S.t-S.trav,T=ch.dur||1,on=at>0;
+  // the guide: our goldfinch circles the scene being told
+  S.ba+=dt*(S.paused?0.25:0.75);
+  const R=h*0.2;
+  tmp.set(S.cur.x+Math.cos(S.ba)*R,90+Math.sin(S.ba*2)*15,S.cur.z+Math.sin(S.ba)*R*0.55);
+  birdPrev.copy(S.bp);S.bp.lerp(tmp,Math.min(1,dt*2.5));
+  const vx=S.bp.x-birdPrev.x,vz=S.bp.z-birdPrev.z;
+  P.pos.copy(S.bp);if(vx*vx+vz*vz>1e-4)P.yaw=Math.atan2(-vx,-vz);
+  P.flap+=dt*14;bird.position.copy(P.pos);bird.rotation.set(0,P.yaw,0);bird.rotateZ(Math.max(-0.5,Math.min(0.5,(vx*Math.cos(P.yaw)-vz*Math.sin(P.yaw))*0.02)));
+  for(const w of wings)w.piv.rotation.z=w.sx*Math.sin(P.flap)*0.75;
+  bird.visible=true;birdShadow.position.set(P.pos.x,0.6,P.pos.z);birdShadow.scale.setScalar(1.6);
+  const L=on?Math.min(1,at/0.9)*(T>0?Math.max(0,Math.min(1,(T-at)/1.2)):1):0;
+  // figures: the chapter's cast moves with more energy; the painting itself bends, nothing is lifted off
+  for(const c of creatures)poseCreature(c,0,0,0);
+  rigUpdate(dt);actorsUpdate(dt,true);actorSecrets();
+  // voices of the cast, spread through the scene
+  const snd=ch.snd||[];
+  if(on&&S.said<snd.length&&at>0.5+S.said*1.9){voice(snd[S.said],0.85,(S.said%2?0.3:-0.3));S.said++}
+  // scene effects
+  if(on&&!S.paused&&L>0){
+    const fx=ch.fx,rr=(ch.r||300)*0.55;
+    if(fx==='gold'&&Math.random()<dt*30)emit(ch.x+rand(-rr,rr),rand(5,40),ch.z+rand(-rr,rr)*0.7,Math.random()<.5?'#ffe9a0':'#fff6d8',1,10,{life:rand(1.5,2.6),up:22,drag:0.99});
+    if(fx==='fountain'&&Math.random()<dt*40)emit(416+rand(-8,8),20,792+rand(-6,6),Math.random()<.5?'#cfeeff':'#ffffff',2,70,{life:rand(0.9,1.4),up:40,drag:0.97});
+    if(fx==='petal'&&Math.random()<dt*22)emit(ch.x+rand(-rr,rr),rand(30,70),ch.z+rand(-rr,rr)*0.7,Math.random()<.5?'#ff6f8a':'#ffd0dc',1,14,{life:rand(2,3.2),up:-6,drag:0.99});
+    if(fx==='ember'&&Math.random()<dt*35)emit(ch.x+rand(-rr,rr)*1.3,rand(0,20),ch.z+rand(-rr,rr),Math.random()<.5?'#ff8a3a':'#ffcf6a',1,10,{life:rand(1.6,3),up:45,drag:1});
+  }
+  if(ch.glow&&on){sparkle.visible=true;sparkle.position.set(ch.glow[0],14,ch.glow[1]);sparkle.material.opacity=0.35*L+0.12*Math.sin(elapsed*2)*L;sparkle.scale.setScalar(160+Math.sin(elapsed*1.4)*20)}
+  else sparkle.visible=false;
+  // demons appear only in hell chapters, circling the scene
+  for(let j=0;j<demons.length;j++){const d=demons[j],show=!!ch.demons&&on&&j<3;d.g.visible=show;d.shadow.visible=show;if(!show)continue;
+    d.ph+=dt*7;const a=elapsed*0.5+j*2.1,rr=(ch.r||300)*0.75;
+    d.g.position.set(ch.x+Math.cos(a)*rr,70+Math.sin(d.ph*0.3)*12,ch.z+Math.sin(a)*rr*0.6);
+    d.g.lookAt(ch.x,d.g.position.y,ch.z);d.g.rotateY(Math.PI);
+    for(let i=0;i<2;i++)d.ws[i].rotation.y=(i?-1:1)*Math.sin(d.ph*1.6)*0.6;
+    d.shadow.position.set(d.g.position.x,0.5,d.g.position.z)}
+  // progress and auto-advance
+  const bar=$('stBar').children;if(bar&&bar.length){for(let j=0;j<bar.length;j++){const f=j<S.i?1:j>S.i?0:(ch.end?1:Math.min(1,S.t/(S.trav+T)));const b=bar[j].firstChild;if(b&&b._f!==f){b._f=f;b.style.transform='scaleX('+f+')'}}}
+  if(!ch.end&&!S.paused&&S.t>=S.trav+T)storyGo(S.i+1);
+}
+
+// minimap
+const miniImg=new Image();miniImg.src='painting_small.jpg';
+function drawMini(){
+  if(!miniImg.complete||!miniImg.naturalWidth)return;
+  const mw=mini.width,mh=mini.height,k=mw/W;
+  mctx.drawImage(miniImg,0,0,mw,mh);mctx.fillStyle='rgba(18,12,8,.25)';mctx.fillRect(0,0,mw,mh);
+  for(const s of SECRETS)if(found.has(s.id)){mctx.fillStyle='#ffcf5a';mctx.fillRect(s.x*k-1.5,s.y*k-1.5,3,3)}
+  for(const d of demons){mctx.fillStyle='#ff5a1e';mctx.beginPath();mctx.arc(d.g.position.x*k,d.g.position.z*k,2.5,0,7);mctx.fill()}
+  mctx.save();mctx.translate(P.pos.x*k,P.pos.z*k);mctx.rotate(-P.yaw);mctx.fillStyle='#fff';mctx.strokeStyle='#c8202a';mctx.lineWidth=1.5;
+  mctx.beginPath();mctx.moveTo(0,-6);mctx.lineTo(4,4);mctx.lineTo(-4,4);mctx.closePath();mctx.fill();mctx.stroke();mctx.restore();
+}
+
+// ---------- loop: only while flying; ~60 fps cap; quality watchdog ----------
+let rafId=0,last=0,ema=16,slowFor=0,fastFor=0,miniClock=0;
+function startLoop(){if(rafId)return;last=performance.now();rafId=requestAnimationFrame(frame)}
+function stopLoop(){if(rafId)cancelAnimationFrame(rafId);rafId=0}
+function menuCamera(){const t=Math.tan(31*Math.PI/180),h=Math.max(H/2/t,W/2/(t*camera.aspect))*1.04;camera.position.set(W/2,h,H/2+1);camera.lookAt(W/2,0,H/2)}
+function renderOnce(){if(!ready)return;if(state==='menu'){menuCamera();scene.fog.near=5000;scene.fog.far=9000;poseWorld();for(const c of creatures)poseCreature(c,0,0,0)}renderer.render(scene,camera)}
+function frame(now){
+  rafId=requestAnimationFrame(frame);
+  const raw=now-last;if(raw<15.5)return;last=now;
+  let dt=Math.min(0.05,raw/1000);
+  const t0=performance.now();
+  if(hitStop>0){hitStop-=dt;dt*=0.08}
+  if(focusT>0)focusT-=raw/1000;
+  if(shake>0)shake=Math.max(0,shake-raw/1000);
+  if(state==='story')storyUpdate(dt);
+  else{update(dt);placeCamera(false,dt)}
+  updateParticles(dt);
+  renderer.render(scene,camera);
+  if(state==='play'){miniClock+=dt;if(miniClock>0.2){miniClock=0;drawMini()}}
+  const work=performance.now()-t0;ema=ema*0.95+raw*0.05;
+  if(ema>24){slowFor+=dt;fastFor=0}else if(ema<18){fastFor+=dt;slowFor=0}
+  if(slowFor>2&&quality>0.55){quality=Math.max(0.55,quality*0.8);slowFor=0;resize()}
+  if(fastFor>8&&quality<1){quality=Math.min(1,quality/0.8);fastFor=0;resize()}
+  $('perf').textContent=Math.round(ema)+' ms/kare · '+work.toFixed(1)+' ms iş';
+}
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){stopLoop();if(AC&&AC.state==='running')AC.suspend();music.pause()}
+  else{if(state!=='menu'){if(AC&&AC.state==='suspended')AC.resume();startMusic()}if(state==='play'||state==='story')startLoop()}
+});
+addEventListener('resize',resize);
+
+// ---------- Kâşifler Panosu (shared leaderboard) ----------
+let db=null,userApi=null,myId=null,canWrite=null,boardRows=[];
+function cleanRow(id,d){
+  if(!d||typeof d!=='object')return null;
+  const s=Number(d.score),f=Number(d.found);if(!Number.isFinite(s)||s<0||s>1e6)return null;
+  const nick=(typeof d.nick==='string'?d.nick:'').trim().slice(0,16)||'Adsız kuş';
+  return {id,nick,score:Math.floor(s),found:Number.isFinite(f)?Math.max(0,Math.min(SECRETS.length,Math.floor(f))):0};
+}
+function renderBoard(msg){
+  ['boardStart','boardAlbum'].forEach(id=>{
+    const box=$(id),ol=box.querySelector('ol'),em=box.querySelector('.empty');box.hidden=false;ol.textContent='';
+    if(msg){em.hidden=false;em.textContent=msg;return}
+    if(!boardRows.length){em.hidden=false;em.textContent='Pano boş. İlk kâşif sen ol.';return}
+    em.hidden=true;
+    boardRows.forEach((r,i)=>{const li=document.createElement('li');if(r.id===myId)li.className='me';
+      const a=document.createElement('span');a.className='r';a.textContent=(i+1)+'.';
+      const b=document.createElement('span');b.className='n';b.textContent=r.nick;
+      const f=document.createElement('span');f.className='f';f.textContent=r.found+' sır';
+      const c=document.createElement('span');c.className='s';c.textContent=r.score;li.append(a,b,f,c);ol.appendChild(li)});
+  });
+}
+function prepPostForm(){
+  $('postForm').hidden=!(db&&myId&&canWrite!==false&&score>0);$('postBtn').disabled=false;
+  const saved=store.get('bahce-nick');if(saved&&!$('nick').value)$('nick').value=saved;
+}
+$('postForm').addEventListener('submit',async e=>{
+  e.preventDefault();if(!db||!myId)return;
+  const nick=$('nick').value.trim().slice(0,16);
+  if(!nick){$('postMsg').textContent='Önce bir ad yaz.';$('nick').focus();return}
+  store.set('bahce-nick',nick);
+  const btn=$('postBtn');btn.disabled=true;$('postMsg').textContent='Yazılıyor…';
+  try{
+    const ref=db.doc('scores/'+myId);const snap=await ref.get();
+    const prev=snap.exists?cleanRow(myId,snap.data()):null;
+    if(prev&&prev.score>=score){if(prev.nick!==nick)await ref.update({nick});$('postMsg').textContent='Panodaki puanın daha yüksek: '+prev.score+'.'}
+    else{await ref.set({nick,score,found:found.size,at:Date.now()});$('postMsg').textContent='Panoya yazıldı.'}
+  }catch(err){
+    if(err&&err.code==='invalid_argument'){canWrite=false;$('postForm').hidden=true;$('postMsg').textContent='Bu tabloda panoya yazma iznin yok; sadece okuyabilirsin.'}
+    else $('postMsg').textContent='Yazılamadı. Bir daha dene.';
+  }finally{btn.disabled=false}
+});
+(async()=>{
+  if(!window.claude||typeof window.claude.use!=='function')return;
+  try{[db,userApi]=await Promise.all([window.claude.use('db'),window.claude.use('user')])}catch(e){return}
+  if(userApi){try{myId=await userApi.id()}catch(e){}try{canWrite=await userApi.can('data.write')}catch(e){}}
+  if(!db)return;
+  renderBoard('Pano açılıyor…');
+  let got=false;const timer=setTimeout(()=>{if(!got)renderBoard('Pano şu an açılamadı.')},10000);
+  try{db.collection('scores').orderBy('score','desc').limit(10).onSnapshot(snap=>{got=true;clearTimeout(timer);boardRows=snap.docs.map(d=>cleanRow(d.id,d.data())).filter(Boolean);renderBoard()},()=>{got=true;clearTimeout(timer);renderBoard('Pano şu an açılamadı.')})}catch(e){clearTimeout(timer)}
+})();
+
+updateHUD();poseWorld();resize();
+window.__bahce={actors,figs,patches,rigAt,RD,startStory,storyGo,get story(){return S},get state(){return state},P,SECRETS,get found(){return found},get score(){return score},get escapes(){return escapes},get demons(){return demons},get creatures(){return creatures},discover,setView,get ov(){return ov},backdrop,camera};
+})();
+</script>
